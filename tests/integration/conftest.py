@@ -35,7 +35,7 @@ def _wait_for_ha() -> None:
 
 
 def _complete_onboarding() -> str | None:
-    """Complete onboarding if needed; return an access token (or None if already done)."""
+    """Complete onboarding if needed; return an access token (None if already done)."""
     r = requests.post(
         f"{HA_URL}/api/onboarding/users",
         json={

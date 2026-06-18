@@ -56,6 +56,12 @@ Keep them in separate dirs and separate CI steps.
   needs `pytest-asyncio`, which only the HA harness installs) — not in the root
   `pyproject.toml`, so the pure unit tier stays dependency-light.
 
+## Linting (ruff)
+Python is linted + formatted with **ruff** (config in `pyproject.toml`, enforced by
+`lint.yml`). Keep `ruff check custom_components tests ci scripts` and `ruff format
+--check …` clean before pushing. When identifiers reflow lines (e.g. after using
+`scripts/rename.py`), run `ruff format`.
+
 ## Translations (quality gates)
 `strings.json` (backend) and `frontend/src/locales/en.json` are the sources of
 truth, guarded by `tests/unit/test_translations_parity.py` and

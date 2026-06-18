@@ -4,6 +4,9 @@ pytest-timeout
 requests
 websockets
 
+# Linting / formatting (also enforced in CI by .github/workflows/lint.yml).
+ruff
+
 # The component tier (tests/component) runs against a REAL in-process Home
 # Assistant via this harness. It pulls in pytest-socket, which BLOCKS real
 # network access — so it must NOT be installed for the Docker integration tier

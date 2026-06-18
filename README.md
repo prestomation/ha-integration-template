@@ -19,8 +19,9 @@ items, each with a numeric value. It's deliberately trivial — the point is the
 | **Frontend** | A deep-linked sidebar **panel** (admin) and a dashboard **Lovelace card** (display), TypeScript + Rollup, with a tiny dependency-free i18n. |
 | **Translations** | Backend `strings.json` + `translations/` and frontend `src/locales/` (`en`, `de`), guarded by parity tests. |
 | **Tests** | Four tiers: pure unit, **in-process HA** component, Docker integration, and Playwright e2e + screenshot capture. |
-| **CI / release** | `test`, `integration`, `e2e`, `hacs`, and a version-checked `release` workflow. |
+| **CI / release** | `lint` (ruff), `test`, `integration`, `e2e`, `hacs`, and a version-checked `release` workflow; plus dependabot and issue/PR templates. |
 | **Agentic rules** | `AGENTS.md`, `CLAUDE.md`, `.amazonq/rules/`, and a SessionStart hook — conventions and hard gates that coding agents auto-load. |
+| **Rename script** | `scripts/rename.py your_domain "Your Name"` rewrites every placeholder + renames the component dir in one step. |
 
 ## The example feature
 
@@ -37,12 +38,17 @@ Back/Forward work and any view is shareable by URL:
 
 ## Using the template
 
-1. **Rename.** Find-and-replace, in this order:
-   - `example_integration` → `your_domain` (snake_case)
-   - `Example Integration` → `Your Name`
-   - `example-` → `your-` (web-component / static-path prefixes)
-   - `ex`/`Example` symbol prefixes → yours
-   Rename the `custom_components/example_integration/` directory too.
+1. **Rename** — one command rewrites every placeholder (domain, display name,
+   web-component / CSS / symbol prefixes) and renames the component directory:
+
+   ```bash
+   python scripts/rename.py your_domain "Your Name"
+   # optional explicit short prefix (default: derived from the domain):
+   # python scripts/rename.py your_domain "Your Name" --prefix yd
+   ```
+
+   Review `git diff` afterwards. (The script auto-runs `ruff format` so the result
+   is lint-clean.)
 2. **Replace the model.** Swap the items model (`models.py`, `store.py`, `sensor.py`,
    the panel/card UI, `strings.json`/locales) for your domain. Keep the conventions.
 3. **Run the tests** (see below) and keep them green as you build.
@@ -64,6 +70,9 @@ npm ci && bash ci/build-panel.sh && bash ci/test-frontend.sh
 
 # 4. Docker integration + Playwright e2e (brings HA up, runs, tears down)
 bash ci/e2e-up.sh
+
+# Lint / format (also enforced in CI)
+ruff check custom_components tests ci scripts && ruff format --check custom_components tests ci scripts
 ```
 
 > **Important:** the component tier and the Docker integration tier **cannot share a

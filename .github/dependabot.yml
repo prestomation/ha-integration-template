@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # GitHub Actions used by the workflows.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]
+
+  # Python test/lint dependencies.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]
+
+  # Frontend (panel + card) build/test dependencies.
+  - package-ecosystem: npm
+    directory: "/custom_components/example_integration/frontend"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]
+
+  # Root vitest deps.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]
+
+  # Playwright e2e deps.
+  - package-ecosystem: npm
+    directory: "/tests/e2e"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]

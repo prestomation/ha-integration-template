@@ -14,7 +14,9 @@ async def test_websocket_add_list_update_delete(hass, setup_entry, hass_ws_clien
     assert res["success"] and res["result"]["items"] == []
 
     # add
-    await client.send_json({"id": 2, "type": f"{DOMAIN}/add", "name": "Shelf", "value": 2})
+    await client.send_json(
+        {"id": 2, "type": f"{DOMAIN}/add", "name": "Shelf", "value": 2}
+    )
     res = await client.receive_json()
     assert res["success"]
     item_id = res["result"]["item"]["id"]

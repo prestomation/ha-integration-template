@@ -18,9 +18,7 @@ from pathlib import Path
 import pytest
 
 _COMPONENT = (
-    Path(__file__).resolve().parents[2]
-    / "custom_components"
-    / "example_integration"
+    Path(__file__).resolve().parents[2] / "custom_components" / "example_integration"
 )
 _STRINGS = _COMPONENT / "strings.json"
 _TRANSLATIONS = _COMPONENT / "translations"

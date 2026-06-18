@@ -17,7 +17,9 @@ from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
 _BACKEND = _ROOT / "custom_components" / "example_integration" / "translations"
-_FRONTEND = _ROOT / "custom_components" / "example_integration" / "frontend" / "src" / "locales"
+_FRONTEND = (
+    _ROOT / "custom_components" / "example_integration" / "frontend" / "src" / "locales"
+)
 
 
 def _flatten(obj, prefix=""):
@@ -37,9 +39,7 @@ def _coverage(directory: Path):
         if path.stem == "en":
             continue
         loc = _flatten(json.loads(path.read_text(encoding="utf-8")))
-        translated = sum(
-            1 for k, v in en.items() if k in loc and loc[k] != v
-        )
+        translated = sum(1 for k, v in en.items() if k in loc and loc[k] != v)
         rows.append((path.stem, translated, len(en)))
     return rows
 
@@ -55,7 +55,9 @@ def main() -> int:
             print("| Locale | Translated | Total | % |")
             print("|---|---|---|---|")
             for stem, n, total in rows:
-                print(f"| {stem} | {n} | {total} | {100 * n // total if total else 0}% |")
+                print(
+                    f"| {stem} | {n} | {total} | {100 * n // total if total else 0}% |"
+                )
             print()
         else:
             print(f"{label}:")

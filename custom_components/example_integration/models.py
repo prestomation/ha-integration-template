@@ -71,7 +71,9 @@ def build_item(data: dict[str, Any], *, created: str) -> dict[str, Any]:
     }
 
 
-def apply_update(item: dict[str, Any], data: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+def apply_update(
+    item: dict[str, Any], data: dict[str, Any]
+) -> tuple[dict[str, Any], list[str]]:
     """Return ``(updated_item, changed_fields)`` for an in-place style edit.
 
     Only ``EDITABLE_FIELDS`` present in ``data`` are considered. ``changed_fields``
@@ -83,7 +85,11 @@ def apply_update(item: dict[str, Any], data: dict[str, Any]) -> tuple[dict[str, 
     for field in EDITABLE_FIELDS:
         if field not in data:
             continue
-        new_value = _validate_name(data[field]) if field == "name" else _validate_value(data[field])
+        new_value = (
+            _validate_name(data[field])
+            if field == "name"
+            else _validate_value(data[field])
+        )
         if new_value != updated.get(field):
             updated[field] = new_value
             changed.append(field)

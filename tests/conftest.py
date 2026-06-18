@@ -19,9 +19,7 @@ import types
 from pathlib import Path
 
 _COMPONENT_DIR = (
-    Path(__file__).resolve().parent.parent
-    / "custom_components"
-    / "example_integration"
+    Path(__file__).resolve().parent.parent / "custom_components" / "example_integration"
 )
 
 

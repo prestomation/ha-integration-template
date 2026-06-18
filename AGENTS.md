@@ -156,8 +156,23 @@ section. PEP 440 pre-release suffixes (`bN`/`aN`/`rcN`) ship as GitHub
 pre-releases → HACS beta channel. The built bundles are gitignored; CI builds them.
 See `RELEASE.md`.
 
+## Linting
+
+- Python is linted and formatted with **ruff** (config in `pyproject.toml`,
+  enforced by `lint.yml`). Run `ruff check custom_components tests ci scripts` and
+  `ruff format --check …` before pushing; `ruff format` / `ruff check --fix` apply
+  fixes.
+
+## Renaming
+
+- `python scripts/rename.py your_domain "Your Name"` rewrites every placeholder
+  (domain, display name, web-component / CSS / symbol prefixes), renames the
+  component directory + seeded fixtures, and tidies with ruff. Use it instead of a
+  manual find-and-replace.
+
 ## CI
 
+- `lint.yml` — ruff lint + format check.
 - `test.yml` — vitest, pure pytest unit, **component (in-process HA)**, i18n
   coverage, HACS validation, hassfest.
 - `integration.yml` — Docker-based integration tests (no HA harness installed).

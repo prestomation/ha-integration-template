@@ -25,7 +25,7 @@ from .const import (
     STORAGE_KEY,
     STORAGE_VERSION,
 )
-from .models import build_item, apply_update
+from .models import apply_update, build_item
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +66,9 @@ class ExampleStore:
         item = build_item(data, created=dt_util.now().isoformat())
         self._items[item["id"]] = item
         await self._save()
-        self.hass.bus.async_fire(EVENT_ITEM_CREATED, events.item_created_event_data(item))
+        self.hass.bus.async_fire(
+            EVENT_ITEM_CREATED, events.item_created_event_data(item)
+        )
         _LOGGER.debug("Added item %s", item["id"])
         return item
 
@@ -94,6 +96,8 @@ class ExampleStore:
         """
         item = self._items.pop(item_id)  # KeyError -> caller maps to a user error
         await self._save()
-        self.hass.bus.async_fire(EVENT_ITEM_DELETED, events.item_deleted_event_data(item))
+        self.hass.bus.async_fire(
+            EVENT_ITEM_DELETED, events.item_deleted_event_data(item)
+        )
         _LOGGER.debug("Deleted item %s", item_id)
         return item

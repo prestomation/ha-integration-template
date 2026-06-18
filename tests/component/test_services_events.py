@@ -25,8 +25,11 @@ def _total_state(hass):
 
 async def _add(hass, name="Shelf", value=3):
     return await hass.services.async_call(
-        DOMAIN, "add_item", {"name": name, "value": value},
-        blocking=True, return_response=True,
+        DOMAIN,
+        "add_item",
+        {"name": name, "value": value},
+        blocking=True,
+        return_response=True,
     )
 
 
