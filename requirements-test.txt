@@ -1,0 +1,12 @@
+pytest
+pytest-cov
+pytest-timeout
+requests
+websockets
+
+# The component tier (tests/component) runs against a REAL in-process Home
+# Assistant via this harness. It pulls in pytest-socket, which BLOCKS real
+# network access — so it must NOT be installed for the Docker integration tier
+# (tests/integration), and the two run as separate pytest invocations. The pure
+# unit tier (tests/unit) needs only `pip install pytest`.
+pytest-homeassistant-custom-component

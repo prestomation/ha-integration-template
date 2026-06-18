@@ -1,0 +1,21 @@
+{
+  "panel.title": "Example Integration",
+  "panel.add": "Add item",
+  "panel.empty": "No items yet. Add your first one.",
+  "panel.back": "Back",
+  "panel.value": "Value",
+  "panel.created": "Created",
+  "panel.save": "Save",
+  "panel.cancel": "Cancel",
+  "panel.delete": "Delete",
+  "panel.name": "Name",
+  "panel.name_required": "Name is required.",
+  "panel.gone": "That item no longer exists.",
+  "count.one": "{n} item",
+  "count.other": "{n} items",
+  "card.title": "Example items",
+  "card.name": "Example Integration card",
+  "card.description": "Show the list of items managed by the Example Integration.",
+  "card.empty": "No items yet.",
+  "card.config_title": "Card title"
+}

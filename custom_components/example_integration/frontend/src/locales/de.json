@@ -1,0 +1,21 @@
+{
+  "panel.title": "Beispiel-Integration",
+  "panel.add": "Eintrag hinzufügen",
+  "panel.empty": "Noch keine Einträge. Füge deinen ersten hinzu.",
+  "panel.back": "Zurück",
+  "panel.value": "Wert",
+  "panel.created": "Erstellt",
+  "panel.save": "Speichern",
+  "panel.cancel": "Abbrechen",
+  "panel.delete": "Löschen",
+  "panel.name": "Name",
+  "panel.name_required": "Name ist erforderlich.",
+  "panel.gone": "Dieser Eintrag existiert nicht mehr.",
+  "count.one": "{n} Eintrag",
+  "count.other": "{n} Einträge",
+  "card.title": "Beispiel-Einträge",
+  "card.name": "Beispiel-Integration-Karte",
+  "card.description": "Zeigt die Liste der von der Beispiel-Integration verwalteten Einträge.",
+  "card.empty": "Noch keine Einträge.",
+  "card.config_title": "Kartentitel"
+}

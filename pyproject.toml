@@ -1,0 +1,15 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Note: asyncio_mode is set per-invocation by the component/integration runners
+# (it requires the pytest-asyncio plugin, which only the HA harness installs).
+# The pure unit tier (tests/unit) needs no asyncio config.
+
+[tool.coverage.run]
+source = ["custom_components/example_integration"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

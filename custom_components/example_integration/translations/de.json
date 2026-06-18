@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Beispiel-Integration",
+        "description": "Füge die Beispiel-Integration hinzu. Sie verwaltet eine einfache Liste von Einträgen und fügt ein Seitenleisten-Panel sowie eine Dashboard-Karte hinzu."
+      }
+    },
+    "abort": {
+      "already_configured": "Die Beispiel-Integration ist bereits konfiguriert."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_items": {
+        "name": "Einträge gesamt"
+      }
+    }
+  },
+  "services": {
+    "add_item": {
+      "name": "Eintrag hinzufügen",
+      "description": "Einen neuen Eintrag erstellen.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Anzeigename für den Eintrag."
+        },
+        "value": {
+          "name": "Wert",
+          "description": "Numerischer Wert für den Eintrag."
+        }
+      }
+    },
+    "update_item": {
+      "name": "Eintrag aktualisieren",
+      "description": "Name oder Wert eines vorhandenen Eintrags ändern.",
+      "fields": {
+        "item_id": {
+          "name": "Eintrags-ID",
+          "description": "ID des zu aktualisierenden Eintrags."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Neuer Anzeigename für den Eintrag."
+        },
+        "value": {
+          "name": "Wert",
+          "description": "Neuer numerischer Wert für den Eintrag."
+        }
+      }
+    },
+    "delete_item": {
+      "name": "Eintrag löschen",
+      "description": "Einen Eintrag entfernen.",
+      "fields": {
+        "item_id": {
+          "name": "Eintrags-ID",
+          "description": "ID des zu löschenden Eintrags."
+        }
+      }
+    }
+  }
+}

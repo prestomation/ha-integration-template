@@ -1,0 +1,31 @@
+# Built frontend bundles (CI builds them; never commit).
+custom_components/example_integration/frontend/example-panel.js
+custom_components/example_integration/frontend/example-card.js
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.venv/
+
+# Playwright
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/.auth/
+
+# HA runtime state from local Docker runs (restore seeded fixtures; never commit).
+tests/integration/ha_config/.storage/
+tests/integration/ha_config/home-assistant*.log*
+tests/integration/ha_config/.HA_VERSION
+tests/integration/ha_config/deps/
+tests/integration/ha_config/tts/
+
+# Build artifacts
+example_integration.zip

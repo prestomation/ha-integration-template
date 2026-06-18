@@ -1,0 +1,5 @@
+# Ignore everything HA writes at runtime; keep only the checked-in config.
+*
+!.gitignore
+!configuration.yaml
+!example-e2e.yaml
