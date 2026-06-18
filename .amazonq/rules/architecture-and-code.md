@@ -91,9 +91,13 @@ your own domain.
   non-retrying error card. e2e helpers handle this with a **retry-with-reload** (see
   `tests/e2e/tests/helpers.ts` `openCard`); don't "fix" it by removing the retry.
 - The integration must be set up **at HA startup** for the card resource to be
-  injected before dashboards render — i.e. a config entry must already exist. The
-  Docker tier creates it once via the config flow (then it persists), rather than
-  committing runtime `.storage`.
+  injected before dashboards render — i.e. a config entry must already exist when HA
+  boots. The Docker/e2e tiers seed one at
+  `tests/integration/ha_config/.storage/core.config_entries` (the only tracked
+  `.storage` file). Creating the entry at runtime is too late: the card resource
+  won't be injected into the onboarded app shell. Note the extra-module `<script>`
+  only appears once onboarding is complete, so verify via a real (authenticated)
+  page load, not a bare `curl /`.
 
 ## Errors, validation & security
 - Service handlers raise `ServiceValidationError` for user-facing errors; the pure

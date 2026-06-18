@@ -130,8 +130,12 @@ must run in separate environments/invocations** (see the socket note).
 - The component tier needs HA + a built frontend package: `pip install
   pytest-homeassistant-custom-component home-assistant-frontend` (the latter
   provides `hass_frontend`, which the `frontend` dependency requires at setup).
-- After running the Docker container locally, don't commit runtime-mutated state
-  (`tests/integration/ha_config/.storage/` is gitignored).
+- The Docker tier seeds a config entry at
+  `tests/integration/ha_config/.storage/core.config_entries` so the integration
+  loads **at HA startup** — which is what injects the dashboard card resource into
+  served pages (creating the entry at runtime is too late for the card). HA mutates
+  that file at runtime; restore the committed fixture (`git checkout`) and don't
+  commit the runtime version. Everything else under `.storage/` is gitignored.
 
 ## Translations (quality gates)
 

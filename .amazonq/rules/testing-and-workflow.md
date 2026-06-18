@@ -46,9 +46,12 @@ share a pytest invocation**:
 Keep them in separate dirs and separate CI steps.
 
 ### Local-run hygiene
-- After running the Docker HA container, don't commit runtime-mutated state
-  (`tests/integration/ha_config/.storage/` is gitignored). The config entry is
-  created via the config flow on first run, then persists in the container volume.
+- The Docker/e2e tiers seed a config entry at
+  `tests/integration/ha_config/.storage/core.config_entries` so the integration
+  loads at HA startup (required for the dashboard card resource to be injected).
+  That's the only tracked `.storage` file; HA mutates it at runtime, so restore the
+  committed fixture with `git checkout` after a local run and don't commit the
+  runtime version. Everything else under `.storage/` is gitignored.
 - `asyncio_mode` is set per-invocation by the component/integration runners (it
   needs `pytest-asyncio`, which only the HA harness installs) — not in the root
   `pyproject.toml`, so the pure unit tier stays dependency-light.
