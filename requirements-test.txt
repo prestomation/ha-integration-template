@@ -10,3 +10,10 @@ websockets
 # (tests/integration), and the two run as separate pytest invocations. The pure
 # unit tier (tests/unit) needs only `pip install pytest`.
 pytest-homeassistant-custom-component
+
+# Provides the ``hass_frontend`` module that the ``frontend`` dependency imports
+# at setup. Without it the component tier can't set up the config entry (the
+# integration depends on ``frontend`` for the panel + card). Docker tier doesn't
+# need it (the real HA image ships the frontend).
+home-assistant-frontend
+
