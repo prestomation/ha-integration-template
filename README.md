@@ -1,5 +1,16 @@
 # HA Integration Template
 
+[![Integration Usage][usage-shield]][usage]
+[![GitHub Downloads][downloads-shield]][releases]
+[![GitHub Release][release-shield]][releases]
+[![GitHub Release Date][release-date-shield]][releases]
+[![GitHub Activity][commits-shield]][commits]
+[![License][license-shield]](LICENSE)
+[![hacs][hacs-shield]][hacs]
+![Project Maintenance][maintenance-shield]
+[![HACS Validation][hacs-validation-shield]][hacs-validation]
+[![HA Version][ha-version-shield]][ha-version]
+
 A batteries-included **template for building a Home Assistant custom integration** —
 backend, a sidebar panel, a Lovelace card, translations, bus events, services, and a
 full four-tier test suite, all wired to CI and HACS. Clone it, rename it, and replace
@@ -92,3 +103,29 @@ The workflow, conventions, and gates live in [`AGENTS.md`](AGENTS.md) and
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+<!--
+Badge reference links. `scripts/rename.py --repo owner/name` rewrites the
+`prestomation/ha-integration-template` slug and the maintainer handle here; the
+domain in the "integration usage" badge (analytics query `$.example_integration.total`)
+is rewritten by the normal domain replacement. The "integration usage" badge only
+shows real numbers once the integration is published to HACS and appears in the
+Home Assistant analytics data.
+-->
+
+[usage-shield]: https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https%3A%2F%2Fanalytics.home-assistant.io%2Fcustom_integrations.json&query=%24.example_integration.total&style=for-the-badge
+[usage]: https://analytics.home-assistant.io/
+[downloads-shield]: https://img.shields.io/github/downloads/prestomation/ha-integration-template/total.svg?style=for-the-badge
+[releases]: https://github.com/prestomation/ha-integration-template/releases
+[release-shield]: https://img.shields.io/github/release/prestomation/ha-integration-template.svg?style=for-the-badge
+[release-date-shield]: https://img.shields.io/github/release-date/prestomation/ha-integration-template?style=for-the-badge
+[commits-shield]: https://img.shields.io/github/last-commit/prestomation/ha-integration-template?style=for-the-badge
+[commits]: https://github.com/prestomation/ha-integration-template/commits/main
+[license-shield]: https://img.shields.io/github/license/prestomation/ha-integration-template.svg?style=for-the-badge
+[hacs-shield]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
+[hacs]: https://github.com/hacs/integration
+[maintenance-shield]: https://img.shields.io/badge/maintainer-%40prestomation-blue.svg?style=for-the-badge
+[hacs-validation-shield]: https://github.com/prestomation/ha-integration-template/actions/workflows/hacs.yml/badge.svg
+[hacs-validation]: https://github.com/prestomation/ha-integration-template/actions/workflows/hacs.yml
+[ha-version-shield]: https://img.shields.io/badge/Home%20Assistant-2024.1%2B-blue.svg?style=for-the-badge
+[ha-version]: https://www.home-assistant.io/
