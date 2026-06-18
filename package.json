@@ -1,0 +1,25 @@
+{
+  "name": "ha-integration-template",
+  "version": "1.0.0",
+  "description": "A template for Home Assistant custom integrations: backend + Lovelace card + panel + translations + events + tests.",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prestomation/ha-integration-template.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/prestomation/ha-integration-template/issues"
+  },
+  "homepage": "https://github.com/prestomation/ha-integration-template#readme",
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest an idea for the integration
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The use case — what you're trying to do and why it's hard today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like to see. Consider whether it fits the admin (panel) vs. usage (entities/card) split.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

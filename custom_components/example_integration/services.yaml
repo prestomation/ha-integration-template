@@ -1,0 +1,49 @@
+# Services for the Example Integration. Every data action is exposed as a
+# service (the interoperability surface for automations, scripts, voice, and
+# other integrations). The panel's websocket commands delegate to the same
+# store methods — services are never a second-class path.
+#
+# Each entry here MUST have a matching block under "services" in strings.json
+# (and every translations/<lang>.json) — hassfest and the translation-parity
+# test enforce the pairing.
+
+add_item:
+  fields:
+    name:
+      required: true
+      example: "Garage shelf"
+      selector:
+        text:
+    value:
+      required: false
+      example: 3
+      selector:
+        number:
+          mode: box
+
+update_item:
+  fields:
+    item_id:
+      required: true
+      example: "a1b2c3d4"
+      selector:
+        text:
+    name:
+      required: false
+      example: "Garage shelf"
+      selector:
+        text:
+    value:
+      required: false
+      example: 5
+      selector:
+        number:
+          mode: box
+
+delete_item:
+  fields:
+    item_id:
+      required: true
+      example: "a1b2c3d4"
+      selector:
+        text:

@@ -1,0 +1,10 @@
+# Ignore everything HA writes at runtime; keep only the checked-in config and the
+# seeded config-entry fixture (so the integration loads at HA startup — which is
+# what injects the dashboard card resource into served pages).
+*
+!.gitignore
+!configuration.yaml
+!example-e2e.yaml
+!.storage
+.storage/*
+!.storage/core.config_entries

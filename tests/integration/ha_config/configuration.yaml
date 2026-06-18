@@ -1,0 +1,57 @@
+homeassistant:
+  name: Test Home
+  unit_system: imperial
+  time_zone: America/New_York
+  latitude: 40.7128
+  longitude: -74.0060
+  elevation: 10
+
+# Enable the REST API
+api:
+
+# Enable frontend (required for the custom sidebar panel + Lovelace card resource)
+frontend:
+
+# Enable the recorder. A real HA install always has it (via default_config); this
+# minimal test config omits default_config, so without it the frontend's
+# recorder/info probe at load is rejected and surfaces as a console error. Enabling
+# it keeps the e2e environment representative and the console clean.
+recorder:
+
+# Dedicated YAML dashboard used by the Playwright e2e suite (the custom card is
+# placed here). The default storage-mode dashboard from onboarding is untouched.
+lovelace:
+  mode: storage
+  dashboards:
+    example-e2e:
+      mode: yaml
+      title: Example E2E
+      icon: mdi:view-list
+      show_in_sidebar: true
+      filename: example-e2e.yaml
+
+# Helper + automation used by test_events to observe the item lifecycle events
+# (the public cross-integration hook). The automation records the last event's
+# payload so a REST test can assert the event fired with the right data.
+input_text:
+  ex_last_event:
+    name: Example last event
+    max: 255
+
+automation:
+  - alias: Capture Example item created
+    trigger:
+      - platform: event
+        event_type: example_integration_item_created
+    action:
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.ex_last_event
+        data:
+          value: "created:{{ trigger.event.data.item_id }}:{{ trigger.event.data.name }}"
+
+# Minimal logging
+logger:
+  default: info
+  logs:
+    custom_components.example_integration: debug

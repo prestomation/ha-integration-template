@@ -1,0 +1,9 @@
+# YAML dashboard for the Playwright e2e suite. Hosts the custom dashboard card
+# so the e2e tests can assert it renders against a real Home Assistant.
+title: Example E2E
+views:
+  - title: Items
+    path: items
+    cards:
+      - type: custom:example-card
+        title: Example items

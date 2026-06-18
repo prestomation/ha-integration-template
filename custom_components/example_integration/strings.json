@@ -1,0 +1,64 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Example Integration",
+        "description": "Add the Example Integration. It manages a simple list of items and adds a sidebar panel plus a dashboard card."
+      }
+    },
+    "abort": {
+      "already_configured": "The Example Integration is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_items": {
+        "name": "Total items"
+      }
+    }
+  },
+  "services": {
+    "add_item": {
+      "name": "Add item",
+      "description": "Create a new item.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Display name for the item."
+        },
+        "value": {
+          "name": "Value",
+          "description": "Numeric value for the item."
+        }
+      }
+    },
+    "update_item": {
+      "name": "Update item",
+      "description": "Change an existing item's name or value.",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "ID of the item to update."
+        },
+        "name": {
+          "name": "Name",
+          "description": "New display name for the item."
+        },
+        "value": {
+          "name": "Value",
+          "description": "New numeric value for the item."
+        }
+      }
+    },
+    "delete_item": {
+      "name": "Delete item",
+      "description": "Remove an item.",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "ID of the item to delete."
+        }
+      }
+    }
+  }
+}
