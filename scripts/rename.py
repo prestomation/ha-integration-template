@@ -8,6 +8,9 @@ own integration in one step:
     python scripts/rename.py your_domain "Your Name"
     # optional short CSS/symbol prefix (default: derived from the domain):
     python scripts/rename.py your_domain "Your Name" --prefix yp
+    # optional repo slug — also rewrites README badges, manifest URLs, and the
+    # maintainer handle to point at your fork:
+    python scripts/rename.py your_domain "Your Name" --repo you/your-repo
 
 What it changes (ordered, boundary-aware so it doesn't corrupt e.g. `flex-`):
 
@@ -112,6 +115,11 @@ def main() -> int:
         "--prefix",
         help="short CSS/id prefix (default: initials of the domain)",
     )
+    parser.add_argument(
+        "--repo",
+        help="repo slug OWNER/NAME — rewrites README badges, manifest URLs, and "
+        "the maintainer handle to your fork (default: leave the template's)",
+    )
     args = parser.parse_args()
 
     if not re.fullmatch(r"[a-z][a-z0-9_]*", args.domain):
@@ -124,6 +132,18 @@ def main() -> int:
         sys.exit("error: --prefix must be lowercase letters/digits")
 
     replacements = build_replacements(args.domain, args.display, prefix)
+
+    if args.repo:
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", args.repo):
+            sys.exit("error: --repo must be OWNER/NAME")
+        owner = args.repo.split("/")[0]
+        # The full slug carries the repo identity in badges, manifest URLs, and the
+        # card's documentationURL; the @handle / %40handle carry the maintainer.
+        replacements += [
+            (re.escape("prestomation/ha-integration-template"), args.repo),
+            (re.escape("%40prestomation"), f"%40{owner}"),
+            (r"@prestomation\b", f"@{owner}"),
+        ]
 
     changed = 0
     for path in iter_files():
