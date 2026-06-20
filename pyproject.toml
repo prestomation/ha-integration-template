@@ -18,8 +18,10 @@ exclude_lines = [
 # custom_components/example_integration` with Home Assistant installed so HA's own
 # types resolve; keep the integration error-free. The template demonstrates the
 # practice without declaring a quality_scale tier in the manifest (see README).
+# Target 3.13 to match modern Home Assistant (it uses 3.13-only typing syntax, so a
+# lower target makes mypy fail to even parse HA's own sources).
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
