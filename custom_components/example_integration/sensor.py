@@ -19,11 +19,27 @@ from typing import Any
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, PANEL_TITLE
 from .coordinator import ExampleCoordinator
+
+
+def _device_info(entry_id: str) -> DeviceInfo:
+    """A single service device that groups every entity this integration creates.
+
+    A local, deviceless integration still wants its entities grouped under one
+    device page (the Gold ``devices`` rule). ``entry_type=SERVICE`` marks it as a
+    service rather than a physical device; the identifier is anchored to the
+    config entry so it is stable across restarts and renames.
+    """
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry_id)},
+        name=PANEL_TITLE,
+        entry_type=DeviceEntryType.SERVICE,
+    )
 
 
 async def async_setup_entry(
@@ -65,6 +81,7 @@ class ExampleTotalSensor(CoordinatorEntity[ExampleCoordinator], SensorEntity):
     def __init__(self, coordinator: ExampleCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{DOMAIN}_total_items"
+        self._attr_device_info = _device_info(coordinator.entry.entry_id)
 
     @property
     def native_value(self) -> int:
@@ -87,6 +104,7 @@ class ExampleItemSensor(CoordinatorEntity[ExampleCoordinator], SensorEntity):
         self._item_id = item_id
         # unique_id anchored to the item id -> survives renames.
         self._attr_unique_id = f"{DOMAIN}_item_{item_id}"
+        self._attr_device_info = _device_info(coordinator.entry.entry_id)
 
     def _item(self) -> dict[str, Any] | None:
         for item in self.coordinator.data or []:

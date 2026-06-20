@@ -95,14 +95,20 @@ def _register_services(hass: HomeAssistant) -> None:
             coord = getattr(entry, "runtime_data", None)
             if isinstance(coord, ExampleCoordinator):
                 return coord
-        raise ServiceValidationError("The Example Integration is not loaded")
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="not_loaded"
+        )
 
     async def handle_add_item(call: ServiceCall) -> dict[str, Any]:
         coord = _coordinator()
         try:
             item = await coord.store.add_item(dict(call.data))
         except ItemValidationError as err:
-            raise ServiceValidationError(str(err)) from err
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_item",
+                translation_placeholders={"error": str(err)},
+            ) from err
         await coord.async_refresh()
         return {"item_id": item["id"]}
 
@@ -113,9 +119,17 @@ def _register_services(hass: HomeAssistant) -> None:
         try:
             await coord.store.update_item(item_id, data)
         except KeyError:
-            raise ServiceValidationError(f"Item not found: {item_id}") from None
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="item_not_found",
+                translation_placeholders={"item_id": item_id},
+            ) from None
         except ItemValidationError as err:
-            raise ServiceValidationError(str(err)) from err
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_item",
+                translation_placeholders={"error": str(err)},
+            ) from err
         await coord.async_refresh()
 
     async def handle_delete_item(call: ServiceCall) -> None:
@@ -124,7 +138,9 @@ def _register_services(hass: HomeAssistant) -> None:
             await coord.store.delete_item(call.data["item_id"])
         except KeyError:
             raise ServiceValidationError(
-                f"Item not found: {call.data['item_id']}"
+                translation_domain=DOMAIN,
+                translation_key="item_not_found",
+                translation_placeholders={"item_id": call.data["item_id"]},
             ) from None
         await coord.async_refresh()
 

@@ -5,6 +5,16 @@ All notable changes to this project are documented here. The format is based on
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `manifest.json` `version`
 is the single source of truth (see `RELEASE.md`).
 
+## [Unreleased]
+
+### Added
+- **Platinum-tier practices baked into the template.** Strict typing (`py.typed` +
+  `mypy` in `lint.yml`), localized service exceptions (`strings.json` → `exceptions`,
+  en + de) with an AST drift-guard test, a single service `DeviceInfo` grouping the
+  integration's entities, and `integration_type: service`. The template demonstrates
+  these patterns without stamping a `quality_scale` tier in the manifest (that's
+  left to the integration you build on top of it).
+
 ## [0.1.0]
 
 ### Added
