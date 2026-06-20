@@ -40,7 +40,11 @@ def async_register(hass: HomeAssistant) -> None:
 
 @callback
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/list"})
-def ws_list_items(hass, connection, msg) -> None:
+def ws_list_items(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
     """Return all items."""
     coord = _coordinator(hass)
     items = coord.store.list_items() if coord else []
@@ -55,7 +59,11 @@ def ws_list_items(hass, connection, msg) -> None:
     }
 )
 @websocket_api.async_response
-async def ws_add_item(hass, connection, msg) -> None:
+async def ws_add_item(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
     """Create an item (delegates to the store)."""
     coord = _coordinator(hass)
     if coord is None:
@@ -79,7 +87,11 @@ async def ws_add_item(hass, connection, msg) -> None:
     }
 )
 @websocket_api.async_response
-async def ws_update_item(hass, connection, msg) -> None:
+async def ws_update_item(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
     """Update an item (delegates to the store)."""
     coord = _coordinator(hass)
     if coord is None:
@@ -102,7 +114,11 @@ async def ws_update_item(hass, connection, msg) -> None:
     {vol.Required("type"): f"{DOMAIN}/delete", vol.Required("item_id"): str}
 )
 @websocket_api.async_response
-async def ws_delete_item(hass, connection, msg) -> None:
+async def ws_delete_item(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
     """Delete an item (delegates to the store)."""
     coord = _coordinator(hass)
     if coord is None:

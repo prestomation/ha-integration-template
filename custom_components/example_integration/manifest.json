@@ -5,6 +5,7 @@
   "config_flow": true,
   "dependencies": ["http", "frontend"],
   "documentation": "https://github.com/prestomation/ha-integration-template",
+  "integration_type": "service",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/prestomation/ha-integration-template/issues",
   "requirements": [],

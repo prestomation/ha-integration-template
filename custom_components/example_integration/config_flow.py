@@ -8,6 +8,8 @@ this with a data schema for your own integration's options.
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 
 from .const import DOMAIN, PANEL_TITLE
@@ -18,7 +20,9 @@ class ExampleConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle the initial step — single instance, no input required."""
         await self.async_set_unique_id(DOMAIN)
         self._abort_if_unique_id_configured()

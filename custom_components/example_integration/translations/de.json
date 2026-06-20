@@ -60,5 +60,16 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Die Beispiel-Integration ist nicht geladen."
+    },
+    "invalid_item": {
+      "message": "{error}"
+    },
+    "item_not_found": {
+      "message": "Eintrag nicht gefunden: {item_id}"
+    }
   }
 }

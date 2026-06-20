@@ -156,12 +156,20 @@ section. PEP 440 pre-release suffixes (`bN`/`aN`/`rcN`) ship as GitHub
 pre-releases → HACS beta channel. The built bundles are gitignored; CI builds them.
 See `RELEASE.md`.
 
-## Linting
+## Linting & typing
 
 - Python is linted and formatted with **ruff** (config in `pyproject.toml`,
   enforced by `lint.yml`). Run `ruff check custom_components tests ci scripts` and
   `ruff format --check …` before pushing; `ruff format` / `ruff check --fix` apply
   fixes.
+- The integration is **fully typed** (ships `py.typed`); `lint.yml` runs `mypy
+  custom_components/example_integration` with Home Assistant installed. Run it
+  locally first: `pip install mypy homeassistant && mypy
+  custom_components/example_integration`. User-facing exceptions are localized
+  (translation keys under `strings.json` → `exceptions`).
+- The template demonstrates Platinum-tier practices but **does not stamp a
+  `quality_scale` tier** in the manifest — the real tier depends on your domain
+  after forking. See `.amazonq/rules/testing-and-workflow.md`.
 
 ## Renaming
 
@@ -172,7 +180,7 @@ See `RELEASE.md`.
 
 ## CI
 
-- `lint.yml` — ruff lint + format check.
+- `lint.yml` — ruff lint + format check, and **mypy** strict typing (HA installed).
 - `test.yml` — vitest, pure pytest unit, **component (in-process HA)**, i18n
   coverage, HACS validation, hassfest.
 - `integration.yml` — Docker-based integration tests (no HA harness installed).

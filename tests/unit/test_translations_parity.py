@@ -32,8 +32,12 @@ _COGNATE_IDENTICAL: dict[str, set[str]] = {
         "services.update_item.fields.name.name",
     },
 }
-# Globally-allowed identical values (symbols, product name fragments). Empty here.
-_INTENTIONALLY_IDENTICAL: set[str] = set()
+# Globally-allowed identical values (symbols, product-name fragments, and
+# messages that are a bare ``{placeholder}`` — identical by design in every
+# language because the substituted text carries the meaning).
+_INTENTIONALLY_IDENTICAL: set[str] = {
+    "exceptions.invalid_item.message",  # "{error}" — the wrapped error text
+}
 
 
 def _flatten(obj, prefix: str = "") -> dict[str, str]:

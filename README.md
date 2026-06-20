@@ -91,6 +91,27 @@ ruff check custom_components tests ci scripts && ruff format --check custom_comp
 > `pytest-socket`, which blocks the real network the Docker tier needs. They run as
 > separate steps.
 
+## Quality scale
+
+The template is built to demonstrate the practices behind Home Assistant's
+[**Platinum** integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/),
+so the result you build on top of it starts from a strong baseline:
+
+- **Strict typing** — fully typed, ships `py.typed`, and CI runs `mypy` against the
+  integration with Home Assistant installed (`lint.yml`, config in `pyproject.toml`).
+- **Async, single-coordinator core**; one mutation chokepoint (`ExampleStore`).
+- **Localized exceptions** — services raise `ServiceValidationError` with
+  `translation_key`s defined under `strings.json` → `exceptions` (en + de). A unit
+  drift-guard (`tests/unit/test_exception_translations.py`) keeps every raise
+  localizable.
+- **One service device** groups the integration's entities (`DeviceInfo` with
+  `entry_type=SERVICE`).
+
+It intentionally **does not stamp a `quality_scale` tier in `manifest.json`** — the
+real tier depends on the domain you build after forking (whether your integration
+talks to a device, needs discovery/auth, etc.). Add the manifest key and a
+`quality_scale.yaml` ledger once your integration's scope is settled.
+
 ## Conventions & hard gates
 
 The workflow, conventions, and gates live in [`AGENTS.md`](AGENTS.md) and

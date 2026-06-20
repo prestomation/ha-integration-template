@@ -103,6 +103,12 @@ your own domain.
 - Service handlers raise `ServiceValidationError` for user-facing errors; the pure
   model raises `ItemValidationError`, translated at the boundary. Websocket commands
   return structured errors via `connection.send_error`.
+- **Exceptions are localized (exception-translations rule).** Every user-facing
+  `ServiceValidationError` / `HomeAssistantError` is built with
+  `translation_domain=DOMAIN` + a `translation_key` (and `translation_placeholders`),
+  never a bare string; the key is defined under `exceptions` in `strings.json` (and
+  every locale). A pure-AST drift-guard (`tests/unit/test_exception_translations.py`)
+  fails the build on a bare-string raise or a key missing from `strings.json`.
 - Escape all user-provided content before injecting into `innerHTML` in the panel
   (`escapeHTML`).
 

@@ -84,6 +84,19 @@ never leaving it in English. `python3 ci/i18n-coverage.py` reports coverage
   pre-releases → HACS beta channel.
 - The built `example-panel.js` / `example-card.js` are gitignored; CI builds them.
 
+## Typing (strict-typing — Platinum practice)
+- The integration is **fully typed** and ships
+  `custom_components/example_integration/py.typed`. `lint.yml` runs `mypy
+  custom_components/example_integration` with Home Assistant installed (so HA's types
+  resolve); config is `[tool.mypy]` in `pyproject.toml`. Run locally before pushing:
+  `pip install mypy homeassistant && mypy custom_components/example_integration`.
+- The template implements Platinum-tier practices (strict typing, async core,
+  localized exceptions, a single service `DeviceInfo`) but **intentionally does not
+  stamp a `quality_scale` tier in `manifest.json`** — the real tier depends on the
+  domain you build after forking. Add the manifest key + a `quality_scale.yaml`
+  ledger once your scope is settled. `scripts/rename.py` rewrites the mypy target
+  path along with the rest of the placeholders.
+
 ## Reviews
 - After every push and when opening a PR, request a critical review and name the
   topics to scrutinize (correctness edge cases, maintainability, performance,
