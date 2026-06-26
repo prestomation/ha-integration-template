@@ -26,6 +26,33 @@ offers to users who enabled "Show beta versions":
 
 Stable `X.Y.Z` ships as a normal release.
 
+## Preview releases (test a PR build without merging)
+
+Sometimes you want to **install and try a PR's build via HACS** before merging it —
+without bumping the version or cutting a real release. Add the **`preview-release`**
+label to the PR and `preview-release.yml` builds the frontend bundles +
+`example_integration.zip` from the PR head, stamps a synthetic version
+(`X.Y.Z.dev<pr>`) into the zip's manifest, and publishes an **ephemeral GitHub
+pre-release** with the zip attached. Install it from HACS: open *Example Integration*
+→ ⋮ → **Redownload**, enable **Show beta versions**, and pick `X.Y.Z.dev<pr>` (or
+download `example_integration.zip` from the release and unzip into
+`config/custom_components/example_integration/`).
+
+- **Opt-in only** — nothing happens without the label (and only users with write
+  access can label).
+- **Same-repo PRs only** — fork PRs get no token and are not built this way.
+- **Owner approval** — the publish job runs in the `preview-release` GitHub
+  Environment; add **Required reviewers** to it (Settings → Environments) to make each
+  build wait for an explicit approval.
+- **Ephemeral & low-noise** — it's a **pre-release** (`prerelease: true`), so it's
+  offered only to users who enabled *Show beta versions*; the `.dev<pr>` version sorts
+  *below* the real `X.Y.Z` release so it never nags anyone as an update; it's
+  re-published on each push and **deleted automatically when the PR closes**.
+
+> When you rename the template (`scripts/rename.py`), update `preview-release.yml`
+> to replace `example_integration` / `Example Integration` with your domain / display
+> name.
+
 ## Notes
 
 - The built `example-panel.js` / `example-card.js` are gitignored; CI builds them
