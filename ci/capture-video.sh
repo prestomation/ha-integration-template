@@ -52,9 +52,12 @@ ffmpeg -y -loglevel error -i "$WEBM" \
   -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart -an "$MP4"
 
 echo "[capture-video] transcoding -> gif (fallback)..."
-# Two-pass palette for a clean, small GIF.
-PALETTE="$(mktemp --suffix=.png)"
-trap 'rm -f "$PALETTE"' EXIT
+# Two-pass palette for a clean, small GIF. Use a temp dir (portable across GNU and
+# BSD/macOS `mktemp`, unlike GNU-only `--suffix`) so the palette can keep its .png
+# extension and cleanup removes everything.
+PALETTE_DIR="$(mktemp -d)"
+PALETTE="$PALETTE_DIR/palette.png"
+trap 'rm -rf "$PALETTE_DIR"' EXIT
 ffmpeg -y -loglevel error -i "$WEBM" \
   -vf "fps=${GIF_FPS},scale=${GIF_WIDTH}:-1:flags=lanczos,palettegen" "$PALETTE"
 ffmpeg -y -loglevel error -i "$WEBM" -i "$PALETTE" \
