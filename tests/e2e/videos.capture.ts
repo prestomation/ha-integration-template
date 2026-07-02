@@ -23,7 +23,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { resolve } from 'path';
-import { openCard, openPanel } from './tests/helpers';
+import { addItem, openCard, openPanel } from './tests/helpers';
 
 const OUT = process.env.VIDEO_DIR || '/tmp/example-integration-video';
 const STATE_PATH = resolve(__dirname, '.auth/state.json');
@@ -49,22 +49,16 @@ test('record Example Integration walkthrough', async ({ browser }) => {
     await expect(panel.locator('.ex-toolbar-title')).toBeVisible();
     await page.waitForTimeout(BEAT * 2);
 
-    // 2. Add a couple of items through the panel's add form — show the form open,
-    //    the fields fill, and the new rows appear.
-    for (const [name, value] of [
-      ['Garage shelf', 4],
-      ['Kitchen drawer', 12],
-    ] as const) {
-      await panel.locator('#add-btn').click();
-      await expect(panel.locator('#ex-item-form')).toBeVisible();
-      await panel.locator('#ex-item-form #ex-name').fill(name);
-      await page.waitForTimeout(BEAT);
-      await panel.locator('#ex-item-form #ex-value').fill(String(value));
-      await page.waitForTimeout(BEAT);
-      await panel.locator('#ex-item-form #ex-save').click();
-      await expect(panel.locator('.ex-name', { hasText: name }).first()).toBeVisible();
-      await page.waitForTimeout(BEAT);
-    }
+    // 2. Add a couple of items through the panel's add form. Use the shared addItem
+    //    helper (open → fill → save → assert) rather than hand-rolling the steps with
+    //    pauses: after the first add the panel re-renders on the item-created event,
+    //    and a pause left sitting inside the open form races that re-render and closes
+    //    it (the Save button detaches). Pause *between* adds instead, so the motion
+    //    still reads while each add stays atomic.
+    await addItem(page, 'Garage shelf', 4);
+    await page.waitForTimeout(BEAT);
+    await addItem(page, 'Kitchen drawer', 12);
+    await page.waitForTimeout(BEAT * 2);
 
     // 3. Open an item's detail page (deep-linked route) — the edit form — then Back.
     await panel.locator('.detail-open').first().click();
