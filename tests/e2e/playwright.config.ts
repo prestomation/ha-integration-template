@@ -18,6 +18,17 @@ export default defineConfig({
   },
   globalSetup: require.resolve('./global-setup'),
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        // In sandboxed environments the Playwright CDN is blocked, so `npx
+        // playwright install` can't fetch Chromium. Point at a pre-installed binary
+        // via CHROMIUM_EXEC instead (unset in CI, where the install succeeds).
+        ...(process.env.CHROMIUM_EXEC
+          ? { launchOptions: { executablePath: process.env.CHROMIUM_EXEC } }
+          : {}),
+      },
+    },
   ],
 });

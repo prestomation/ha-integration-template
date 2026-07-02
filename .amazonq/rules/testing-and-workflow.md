@@ -8,8 +8,20 @@
   `tests/e2e/screenshots.capture.ts`, commit under `docs/images/`, embed via a
   `raw.githubusercontent.com/.../<commit-sha>/docs/images/<file>.png` URL in an
   HTML `<img>` tag — not markdown).
+- **Video walkthrough (per-PR, CI-generated, never committed).** `walkthrough-preview.yml`
+  runs the capture harness (`tests/e2e/videos.capture.ts`) on every PR, transcodes
+  to gif+mp4 via `ci/capture-video.sh` (needs `ffmpeg`), uploads them as a **workflow
+  artifact**, and posts/updates a **sticky comment** linking the download. `docs/videos/`
+  is gitignored — nothing lands in git. The gate for a feature that adds a new UI
+  surface is *editing the tour* in `videos.capture.ts` (with `BEAT` pauses) in the
+  same PR; it's a **soft gate** (`continue-on-error`) so a flaky run doesn't block.
+  Debug locally with `KEEP_UP=1 bash ci/e2e-up.sh` then `bash ci/capture-video.sh`.
+  Artifact-only hosting (no GitHub Pages) means the gif links rather than embeds
+  inline — swap in `rossjrw/pr-preview-action` + a Pages URL if you want inline
+  embedding.
 - **Document new major features in `README.md` in the same change** — use cases +
-  how it's used + screenshot(s) embedded with a relative `docs/images/…` path.
+  how it's used + screenshot(s) embedded with a relative `docs/images/…` path. (The
+  moving walkthrough stays the per-PR CI comment, not the README.)
 
 ## The four test tiers (run locally before pushing — never use CI as the runner)
 Cheapest first. **Tiers 2 and 3 must run in separate environments** (socket rule).

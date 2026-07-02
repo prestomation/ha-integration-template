@@ -33,3 +33,15 @@ if [ -d tests/e2e ]; then
     && npx playwright install --with-deps chromium >/dev/null 2>&1) \
     && log "Playwright Chromium ready." || log "WARNING: Playwright install skipped/failed."
 fi
+
+# ffmpeg transcodes the walkthrough recording to mp4/gif (ci/capture-video.sh).
+# Best-effort so local video capture works out of the box; non-fatal otherwise.
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  log "Installing ffmpeg (for ci/capture-video.sh)..."
+  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+    (sudo -n apt-get update >/dev/null 2>&1 && sudo -n apt-get install -y ffmpeg >/dev/null 2>&1) \
+      && log "ffmpeg ready." || log "WARNING: ffmpeg install skipped/failed (video capture only)."
+  else
+    log "WARNING: no sudo; skipping ffmpeg install (video capture only)."
+  fi
+fi

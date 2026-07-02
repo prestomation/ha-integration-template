@@ -1,0 +1,171 @@
+name: Walkthrough video — PR preview
+
+# Capture the panel/card video walkthrough in CI as a *build artifact* (never
+# committed) and surface it on the PR via a sticky comment. The gif/mp4 are uploaded
+# as a workflow artifact (no GitHub Pages / gh-pages needed) and the comment links to
+# it — so a UI change's *interaction* (flow, transitions, motion) is reviewable
+# without bloating git history. The preview is re-captured on each push.
+#
+# Capture is a *soft* gate (continue-on-error): a flaky Playwright run posts a
+# "capture failed" note rather than blocking the PR. The reviewable artifact is the
+# comment/download, not anything in the diff — if a UI change alters the tour, update
+# tests/e2e/videos.capture.ts so this regenerates correctly.
+#
+# NOTE (artifact-only hosting): GitHub artifacts require sign-in to download and
+# cannot render inline in a comment, so the comment links to the download rather than
+# embedding the gif. If you'd rather have the gif embed inline, host it on GitHub
+# Pages (gh-pages) via rossjrw/pr-preview-action and point the comment at the Pages
+# URL instead — see ha-home-keeper's walkthrough-preview.yml for that variant.
+#
+# When you rename the template (scripts/rename.py), update this file: replace
+# `example_integration` with your domain and `example-panel`/`example-card` selectors
+# in tests/e2e/videos.capture.ts to match.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: read
+  pull-requests: write  # sticky comment
+
+concurrency:
+  group: walkthrough-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  walkthrough:
+    runs-on: ubuntu-latest
+    # Forked PRs get no write token — skip gracefully (the sticky comment needs
+    # pull-requests: write).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        if: github.event.action != 'closed'
+        with:
+          node-version: "20"
+
+      - name: Install frontend deps
+        if: github.event.action != 'closed'
+        run: npm ci --prefix custom_components/example_integration/frontend
+
+      - name: Build panel + card JS
+        if: github.event.action != 'closed'
+        run: bash ci/build-panel.sh
+
+      - name: Install e2e deps
+        if: github.event.action != 'closed'
+        run: npm ci --prefix tests/e2e
+
+      - name: Install Playwright Chromium
+        if: github.event.action != 'closed'
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Install ffmpeg
+        if: github.event.action != 'closed'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Start Home Assistant
+        if: github.event.action != 'closed'
+        working-directory: tests/integration
+        run: docker compose up -d
+
+      - name: Wait for Home Assistant
+        if: github.event.action != 'closed'
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null || true)
+            if [ "$code" = "200" ] || [ "$code" = "401" ]; then
+              echo "Home Assistant is responding (HTTP $code, attempt $i)"
+              exit 0
+            fi
+            echo "Attempt $i/60 - HTTP $code - waiting..."
+            sleep 2
+          done
+          echo "Home Assistant failed to start within 120s"
+          (cd tests/integration && docker compose logs)
+          exit 1
+
+      - name: Capture walkthrough video
+        id: capture
+        if: github.event.action != 'closed'
+        continue-on-error: true
+        env:
+          # Output to a workspace dir, never docs/videos — nothing is committed.
+          VIDEO_DIR: ${{ github.workspace }}/_walkthrough_out
+        run: |
+          bash ci/capture-video.sh
+          # Only gif (embed-friendly) + mp4 (quality) are published — drop the webm.
+          rm -f "$VIDEO_DIR"/*.webm
+
+      - name: Dump Home Assistant logs on capture failure
+        if: github.event.action != 'closed' && steps.capture.outcome == 'failure'
+        working-directory: tests/integration
+        run: docker compose logs homeassistant
+
+      - name: Cleanup Home Assistant
+        if: always() && github.event.action != 'closed'
+        working-directory: tests/integration
+        run: docker compose down -v
+
+      - name: Upload walkthrough artifact
+        id: upload
+        if: steps.capture.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: walkthrough-pr-${{ github.event.number }}
+          path: ${{ github.workspace }}/_walkthrough_out
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Sticky comment with the walkthrough
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
+          EVENT_ACTION: ${{ github.event.action }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const marker = '<!-- walkthrough-preview -->';
+            const { owner, repo } = context.repo;
+            const n = context.issue.number;
+            const action = process.env.EVENT_ACTION;
+            const outcome = process.env.CAPTURE_OUTCOME;
+            const artifactUrl = process.env.ARTIFACT_URL;
+            const runUrl = process.env.RUN_URL;
+
+            let body;
+            if (action === 'closed') {
+              // Nothing left to link once the PR is closed and the artifact expires.
+              body = [marker, '### 🎥 Panel walkthrough', '', '_PR closed — the walkthrough artifact will expire and be removed._'].join('\n');
+            } else if (outcome === 'success' && artifactUrl) {
+              body = [
+                marker,
+                '### 🎥 Panel walkthrough',
+                '',
+                `A video tour of this PR's UI was captured. **[⬇️ Download the walkthrough](${artifactUrl})** — the artifact contains \`walkthrough.gif\` (open to see the motion) and \`walkthrough.mp4\` (higher quality).`,
+                '',
+                `Auto-generated from this PR's HEAD by \`walkthrough-preview.yml\`, updated on every push. GitHub artifacts require sign-in to download and can't render inline, so this links the download rather than embedding the gif. (See the [run](${runUrl}).)`,
+              ].join('\n');
+            } else {
+              body = [
+                marker,
+                '### 🎥 Panel walkthrough',
+                '',
+                `⚠️ The walkthrough capture failed for this push — see the [run logs](${runUrl}). This is a soft gate and does not block the PR; pushing again re-runs it.`,
+              ].join('\n');
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number: n });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: n, body });
+            }

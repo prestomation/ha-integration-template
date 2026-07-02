@@ -27,5 +27,10 @@ tests/integration/ha_config/.HA_VERSION
 tests/integration/ha_config/deps/
 tests/integration/ha_config/tts/
 
+# The video walkthrough (ci/capture-video.sh) is a CI build artifact, never
+# committed — it's captured per-PR and uploaded as a workflow artifact (see
+# walkthrough-preview.yml). Local runs still write here for debugging.
+docs/videos/
+
 # Build artifacts
 example_integration.zip
