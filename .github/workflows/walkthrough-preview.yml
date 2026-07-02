@@ -123,7 +123,11 @@ jobs:
           if-no-files-found: error
 
       - name: Sticky comment with the walkthrough
-        if: always()
+        # Post on success, genuine capture failure, and PR close — but NOT when this
+        # run was cancelled (e.g. superseded by a newer push via cancel-in-progress).
+        # `always()` would post the "capture failed" note for a run that was simply
+        # cut short mid-flight; `!cancelled()` lets the newer run own the comment.
+        if: ${{ !cancelled() }}
         uses: actions/github-script@v7
         env:
           CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
