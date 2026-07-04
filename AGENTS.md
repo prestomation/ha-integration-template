@@ -37,11 +37,48 @@ testable, and HACS-shippable.
     ambiguous for `raw.githubusercontent.com`). After editing the body, re-read it
     and verify each image URL returns HTTP 200. (In-repo README markdown with
     relative `docs/images/…` paths is fine — this only bites PR/issue bodies.)
+- **Every PR that adds a _new user-facing UI feature_ SHOULD keep the video
+  walkthrough current — but you don't capture or commit it; CI does.** Screenshots
+  prove a surface *renders*; a short video proves the *interaction* works (the flow,
+  the transitions, the motion). On every PR, `walkthrough-preview.yml` stands up the
+  seeded HA container, runs the capture harness (`tests/e2e/videos.capture.ts`),
+  transcodes to gif+mp4, publishes them to an orphan **`gh-pages`** branch (under
+  `pr-preview-media/pr-<n>/`, via `rossjrw/pr-preview-action`), and posts/updates a
+  **sticky PR comment** that **embeds the gif inline** (via a `raw.githubusercontent.com`
+  URL — the same trick the screenshot gate uses, so no GitHub Pages setup is needed).
+  Nothing lands in `docs/videos/` or `main` — `docs/videos/` is gitignored and the
+  media lives only on `gh-pages` — so there's zero `main` bloat, and the comment
+  always reflects the PR's HEAD (a `?v=<sha>` cache-buster keeps it fresh).
+  - **The gate for a feature PR is: extend the tour.** Since the walkthrough is
+    generated, "keeping it current" means **editing the tour** (`videos.capture.ts`),
+    not committing a file: when a feature adds a brand-new UI surface, add a step
+    through it (deliberate `BEAT` pauses so the motion reads well) **in the same PR**.
+    Pure bug-fix / styling / copy PRs don't need to touch the tour.
+  - **Capture is a _soft_ gate** (`continue-on-error`): a flaky Playwright run posts a
+    "capture failed" note (with a logs link) instead of blocking the PR; pushing again
+    re-runs it. Don't hand-commit a video to work around it.
+  - **Run it locally to debug the tour** (with ffmpeg on PATH). From the repo root:
+    ```bash
+    KEEP_UP=1 bash ci/e2e-up.sh        # build panel + start HA
+    # In the Claude Code remote env, point Playwright at the pre-installed Chromium:
+    CHROMIUM_EXEC=$(ls /opt/pw-browsers/chromium-*/chrome-linux/chrome 2>/dev/null | head -1) \
+      bash ci/capture-video.sh         # writes gif/mp4 to docs/videos/ (gitignored)
+    ```
+    Open `docs/videos/walkthrough.gif` with the Read tool and confirm the tour shows
+    the intended surfaces (populated list, add flow, detail, card) before relying on
+    CI. **Why gh-pages + an inline gif and not a committed file:** GitHub's issue/PR-body
+    sanitizer *strips* a committed-file `<video>` tag, and committing gifs bloats git
+    history with multi-MB binaries. Publishing to an orphan `gh-pages` branch and
+    embedding the gif via `raw.githubusercontent.com` keeps the motion *inline* and
+    reviewable while leaving `main` clean — and, unlike serving via GitHub Pages, needs
+    no repo setting enabled. (The mp4 is linked, not inline: only a drag-and-drop
+    `user-attachments` upload inline-*plays* an mp4, which CI can't produce.)
 - **Always document new major features in `README.md` in the same change.** Add a
   brief section with the **use cases** (what problem it solves) and a little about
   **how it's used**, with **screenshot(s)** (committed under `docs/images/`,
   embedded with a relative `docs/images/…` path). A headline feature isn't done
-  until the README shows it.
+  until the README shows it. (The moving walkthrough is **not** in the README — it's
+  the per-PR CI comment described above; the README stays on committed screenshots.)
 - **Request a code review after every push and when opening a PR**, and ask
   explicitly for *critical, skeptical* feedback — name the topics to scrutinize
   (correctness edge cases, maintainability, performance, security, HA best
@@ -185,6 +222,8 @@ See `RELEASE.md`.
   coverage, HACS validation, hassfest.
 - `integration.yml` — Docker-based integration tests (no HA harness installed).
 - `e2e.yml` — Docker + Playwright; uploads the Playwright report on failure.
+- `walkthrough-preview.yml` — per-PR video walkthrough: captures the tour, publishes
+  the gif/mp4 to `gh-pages`, posts a sticky comment embedding the gif inline (soft gate).
 - `hacs.yml` — HACS validation.
 - `release.yml` — PR-merge-driven release (version ↔ PANEL_VERSION ↔ CHANGELOG
   checks; builds the zip).
