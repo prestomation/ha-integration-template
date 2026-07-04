@@ -1,32 +1,34 @@
 name: Walkthrough video — PR preview
 
 # Capture the panel/card video walkthrough in CI as a *build artifact* (never
-# committed) and surface it on the PR via a sticky comment. The gif/mp4 are uploaded
-# as a workflow artifact (no GitHub Pages / gh-pages needed) and the comment links to
-# it — so a UI change's *interaction* (flow, transitions, motion) is reviewable
-# without bloating git history. The preview is re-captured on each push.
+# committed) and surface it INLINE on the PR via a sticky comment. The gif/mp4 are
+# published to an orphan `gh-pages` branch under `pr-preview-media/pr-<n>/` (by
+# rossjrw/pr-preview-action) and embedded via a raw.githubusercontent.com URL — the
+# same mechanism the screenshot gate uses for committed PNGs — so the gif renders
+# inline in the comment WITHOUT requiring GitHub Pages to be enabled, and without
+# bloating `main`'s history. The preview is re-published on each push and removed
+# when the PR closes.
 #
 # Capture is a *soft* gate (continue-on-error): a flaky Playwright run posts a
 # "capture failed" note rather than blocking the PR. The reviewable artifact is the
-# comment/download, not anything in the diff — if a UI change alters the tour, update
+# comment, not anything in the diff — if a UI change alters the tour, update
 # tests/e2e/videos.capture.ts so this regenerates correctly.
 #
-# NOTE (artifact-only hosting): GitHub artifacts require sign-in to download and
-# cannot render inline in a comment, so the comment links to the download rather than
-# embedding the gif. If you'd rather have the gif embed inline, host it on GitHub
-# Pages (gh-pages) via rossjrw/pr-preview-action and point the comment at the Pages
-# URL instead — see ha-home-keeper's walkthrough-preview.yml for that variant.
+# NOTE (hosting): media lives on the `gh-pages` branch (auto-created by the action).
+# Nothing is served by GitHub Pages — the inline embed uses raw.githubusercontent.com,
+# so no Pages setup is needed. If you DO enable Pages on gh-pages, the same files are
+# also reachable at https://<owner>.github.io/<repo>/pr-preview-media/pr-<n>/… .
 #
 # When you rename the template (scripts/rename.py), update this file: replace
-# `example_integration` with your domain and `example-panel`/`example-card` selectors
-# in tests/e2e/videos.capture.ts to match.
+# `example_integration` with your domain and the `example-panel`/`example-card`
+# selectors in tests/e2e/videos.capture.ts to match.
 
 on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
 
 permissions:
-  contents: read
+  contents: write       # push the gif/mp4 to the gh-pages branch
   pull-requests: write  # sticky comment
 
 concurrency:
@@ -36,8 +38,8 @@ concurrency:
 jobs:
   walkthrough:
     runs-on: ubuntu-latest
-    # Forked PRs get no write token — skip gracefully (the sticky comment needs
-    # pull-requests: write).
+    # Forked PRs get no write token — skip gracefully (gh-pages push + comment both
+    # need write scope).
     if: github.event.pull_request.head.repo.full_name == github.repository
     timeout-minutes: 20
     steps:
@@ -99,7 +101,7 @@ jobs:
           VIDEO_DIR: ${{ github.workspace }}/_walkthrough_out
         run: |
           bash ci/capture-video.sh
-          # Only gif (embed-friendly) + mp4 (quality) are published — drop the webm.
+          # Publish only gif (inline embed) + mp4 (quality link) — drop the webm.
           rm -f "$VIDEO_DIR"/*.webm
 
       - name: Dump Home Assistant logs on capture failure
@@ -112,15 +114,17 @@ jobs:
         working-directory: tests/integration
         run: docker compose down -v
 
-      - name: Upload walkthrough artifact
-        id: upload
-        if: steps.capture.outcome == 'success'
-        uses: actions/upload-artifact@v4
+      # Deploy on open/sync (when capture succeeded); remove on close. Publishes to
+      # gh-pages under pr-preview-media/pr-<n>/ and cleans that subdir up on close.
+      # comment:false — we post our own inline-embed comment below.
+      - name: Publish / remove inline preview (gh-pages)
+        if: github.event.action == 'closed' || steps.capture.outcome == 'success'
+        uses: rossjrw/pr-preview-action@v1
         with:
-          name: walkthrough-pr-${{ github.event.number }}
-          path: ${{ github.workspace }}/_walkthrough_out
-          retention-days: 14
-          if-no-files-found: error
+          source-dir: ./_walkthrough_out
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview-media
+          comment: false
 
       - name: Sticky comment with the walkthrough
         # Post on success, genuine capture failure, and PR close — but NOT when this
@@ -132,7 +136,7 @@ jobs:
         env:
           CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
           EVENT_ACTION: ${{ github.event.action }}
-          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           script: |
@@ -141,21 +145,32 @@ jobs:
             const n = context.issue.number;
             const action = process.env.EVENT_ACTION;
             const outcome = process.env.CAPTURE_OUTCOME;
-            const artifactUrl = process.env.ARTIFACT_URL;
+            const sha = process.env.HEAD_SHA;
             const runUrl = process.env.RUN_URL;
+
+            // Media is on the gh-pages branch (pr-preview-media/pr-<n>/), published by
+            // pr-preview-action. Embed via raw.githubusercontent.com so the gif renders
+            // inline in the comment without GitHub Pages — the same trick the screenshot
+            // gate uses for committed PNGs. `?v=<sha>` busts the raw/camo cache so each
+            // push shows the fresh capture rather than a stale copy at the same path.
+            const base = `https://raw.githubusercontent.com/${owner}/${repo}/gh-pages/pr-preview-media/pr-${n}`;
+            const gif = `${base}/walkthrough.gif?v=${sha}`;
+            const mp4 = `${base}/walkthrough.mp4?v=${sha}`;
 
             let body;
             if (action === 'closed') {
-              // Nothing left to link once the PR is closed and the artifact expires.
-              body = [marker, '### 🎥 Panel walkthrough', '', '_PR closed — the walkthrough artifact will expire and be removed._'].join('\n');
-            } else if (outcome === 'success' && artifactUrl) {
+              // Preview was torn down; leave a tombstone rather than a broken image.
+              body = [marker, '### 🎥 Panel walkthrough', '', '_Preview removed — the PR is closed._'].join('\n');
+            } else if (outcome === 'success') {
               body = [
                 marker,
                 '### 🎥 Panel walkthrough',
                 '',
-                `A video tour of this PR's UI was captured. **[⬇️ Download the walkthrough](${artifactUrl})** — the artifact contains \`walkthrough.gif\` (open to see the motion) and \`walkthrough.mp4\` (higher quality).`,
+                `<img src="${gif}" alt="Example Integration panel walkthrough" width="820">`,
                 '',
-                `Auto-generated from this PR's HEAD by \`walkthrough-preview.yml\`, updated on every push. GitHub artifacts require sign-in to download and can't render inline, so this links the download rather than embedding the gif. (See the [run](${runUrl}).)`,
+                `▶️ [Higher-quality MP4](${mp4})`,
+                '',
+                'Auto-generated from this PR\'s HEAD by `walkthrough-preview.yml` — updated on every push, removed when the PR closes. Hosted on the `gh-pages` branch (not committed to `main`); the gif carries the motion and the mp4 is linked because GitHub strips a committed `<video>` tag.',
               ].join('\n');
             } else {
               body = [

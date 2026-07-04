@@ -42,10 +42,13 @@ testable, and HACS-shippable.
   prove a surface *renders*; a short video proves the *interaction* works (the flow,
   the transitions, the motion). On every PR, `walkthrough-preview.yml` stands up the
   seeded HA container, runs the capture harness (`tests/e2e/videos.capture.ts`),
-  transcodes to gif+mp4, uploads them as a **workflow artifact**, and posts/updates a
-  **sticky PR comment** linking to the download. Nothing lands in `docs/videos/` in
-  git — that directory is gitignored — so there's zero repo bloat, and the comment
-  always reflects the PR's HEAD.
+  transcodes to gif+mp4, publishes them to an orphan **`gh-pages`** branch (under
+  `pr-preview-media/pr-<n>/`, via `rossjrw/pr-preview-action`), and posts/updates a
+  **sticky PR comment** that **embeds the gif inline** (via a `raw.githubusercontent.com`
+  URL — the same trick the screenshot gate uses, so no GitHub Pages setup is needed).
+  Nothing lands in `docs/videos/` or `main` — `docs/videos/` is gitignored and the
+  media lives only on `gh-pages` — so there's zero `main` bloat, and the comment
+  always reflects the PR's HEAD (a `?v=<sha>` cache-buster keeps it fresh).
   - **The gate for a feature PR is: extend the tour.** Since the walkthrough is
     generated, "keeping it current" means **editing the tour** (`videos.capture.ts`),
     not committing a file: when a feature adds a brand-new UI surface, add a step
@@ -63,12 +66,13 @@ testable, and HACS-shippable.
     ```
     Open `docs/videos/walkthrough.gif` with the Read tool and confirm the tour shows
     the intended surfaces (populated list, add flow, detail, card) before relying on
-    CI. **Why a linked artifact and not the PR/README body:** GitHub's issue/PR-body
+    CI. **Why gh-pages + an inline gif and not a committed file:** GitHub's issue/PR-body
     sanitizer *strips* a committed-file `<video>` tag, and committing gifs bloats git
-    history with multi-MB binaries. Uploading the gif/mp4 as an artifact keeps motion
-    reviewable while leaving `main` clean. (Hosting the gif on GitHub Pages via
-    `rossjrw/pr-preview-action` — the way ha-home-keeper does — lets the gif embed
-    *inline*; this template stays artifact-only so it needs no Pages setup.)
+    history with multi-MB binaries. Publishing to an orphan `gh-pages` branch and
+    embedding the gif via `raw.githubusercontent.com` keeps the motion *inline* and
+    reviewable while leaving `main` clean — and, unlike serving via GitHub Pages, needs
+    no repo setting enabled. (The mp4 is linked, not inline: only a drag-and-drop
+    `user-attachments` upload inline-*plays* an mp4, which CI can't produce.)
 - **Always document new major features in `README.md` in the same change.** Add a
   brief section with the **use cases** (what problem it solves) and a little about
   **how it's used**, with **screenshot(s)** (committed under `docs/images/`,
@@ -218,8 +222,8 @@ See `RELEASE.md`.
   coverage, HACS validation, hassfest.
 - `integration.yml` — Docker-based integration tests (no HA harness installed).
 - `e2e.yml` — Docker + Playwright; uploads the Playwright report on failure.
-- `walkthrough-preview.yml` — per-PR video walkthrough: captures the tour, uploads
-  the gif/mp4 as a workflow artifact, posts a sticky comment (soft gate).
+- `walkthrough-preview.yml` — per-PR video walkthrough: captures the tour, publishes
+  the gif/mp4 to `gh-pages`, posts a sticky comment embedding the gif inline (soft gate).
 - `hacs.yml` — HACS validation.
 - `release.yml` — PR-merge-driven release (version ↔ PANEL_VERSION ↔ CHANGELOG
   checks; builds the zip).

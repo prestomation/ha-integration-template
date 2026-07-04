@@ -15,12 +15,13 @@ Three gates worth repeating because they are easy to miss:
 
 2. **Every PR that adds a _new user-facing UI feature_ should keep the video
    walkthrough current — but CI captures it; you never commit a video.**
-   `walkthrough-preview.yml` runs `tests/e2e/videos.capture.ts` on every PR, uploads
-   the gif/mp4 as a workflow artifact, and posts a **sticky PR comment** linking it.
-   The gate is *editing the tour*: when a feature adds a new surface, extend
-   `videos.capture.ts` to step through it in the same PR. `docs/videos/` is gitignored
-   (zero repo bloat); capture is a soft gate. Pure bug-fix / styling PRs stay on the
-   screenshots gate only. See AGENTS.md "Workflow".
+   `walkthrough-preview.yml` runs `tests/e2e/videos.capture.ts` on every PR, publishes
+   the gif/mp4 to an orphan `gh-pages` branch, and posts a **sticky PR comment that
+   embeds the gif inline** (via a `raw.githubusercontent.com` URL — no GitHub Pages
+   setup needed). The gate is *editing the tour*: when a feature adds a new surface,
+   extend `videos.capture.ts` to step through it in the same PR. `docs/videos/` is
+   gitignored and media never touches `main` (zero repo bloat); capture is a soft gate.
+   Pure bug-fix / styling PRs stay on the screenshots gate only. See AGENTS.md "Workflow".
 
 3. **The component test tier and the Docker integration tier cannot share a pytest
    invocation** — `pytest-homeassistant-custom-component` pulls in `pytest-socket`,
