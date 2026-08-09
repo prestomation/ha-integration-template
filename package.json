@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/prestomation/ha-integration-template#readme",
   "devDependencies": {
-    "jsdom": "^25.0.0",
-    "vitest": "^3.0.0"
+    "jsdom": "^30.0.1",
+    "vitest": "^4.1.10"
   }
 }
