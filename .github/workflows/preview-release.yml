@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: preview-release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -71,9 +71,9 @@ jobs:
           open(path, "a").write("\n")
           PY
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install frontend deps
         run: npm ci --prefix custom_components/example_integration/frontend
