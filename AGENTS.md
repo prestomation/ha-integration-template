@@ -154,6 +154,10 @@ must run in separate environments/invocations** (see the socket note).
 4. **Frontend (vitest)** + **e2e (Playwright)** — `npx vitest run` for `utils`/i18n
    parity; `bash ci/e2e-up.sh` for the browser smoke + screenshot capture.
 
+Plus a fifth, **mutation testing** — see below. It is a PR gate, not part of the
+run-before-you-push loop (it is too slow); run it when you change the mutable
+surface.
+
 - **Pick the right tier for "test against real HA".** HA-coupled logic
   (store/coordinator/entities/services/events/config_flow) belongs in the
   **component** tier — it is real HA and ~100× faster than Docker. Reserve the
@@ -173,6 +177,57 @@ must run in separate environments/invocations** (see the socket note).
   served pages (creating the entry at runtime is too late for the card). HA mutates
   that file at runtime; restore the committed fixture (`git checkout`) and don't
   commit the runtime version. Everything else under `.storage/` is gitignored.
+
+## Mutation testing (a PR gate)
+
+The four tiers above measure *coverage* — that a line ran. Mutation testing
+measures whether a test would have **failed** if that line were wrong. It is the
+difference between a suite that executes the code and a suite that actually
+asserts on it.
+
+`mutation.yml` runs on every PR, in two jobs:
+
+```bash
+bash ci/test-mutation-python.sh            # mutmut, changed functions only
+bash ci/test-mutation-python.sh --all      # the whole configured surface
+bash ci/test-mutation-frontend.sh          # Stryker, changed line ranges only
+bash ci/test-mutation-frontend.sh --all
+```
+
+- **It only scores what your branch touched.** `ci/mutation_scope.py` maps the
+  diff to mutmut mutant-name filters (changed line → enclosing function, via
+  `ast`) and Stryker `--mutate` line ranges. Scoping to whole files would fail a
+  PR for debt it didn't create.
+- **The mutable surface is an allowlist**, in exactly one place per language:
+  `only_mutate` in `[tool.mutmut]` (pyproject.toml) and `mutate` in
+  `stryker.conf.json`. It covers the pure Python core and `utils.ts` / `i18n.ts`
+  — the code the *fast* tiers exercise. HA-coupled modules and the DOM-heavy
+  `panel.ts`/`card.ts` are excluded on purpose: mutating them would mean running
+  the component or Docker tier once per mutant for a score that mostly reports
+  "nothing covers this". Widen the allowlist when you add unit tests that would
+  make the score mean something.
+- **The gate is a mutation score of 80%**, set in `[tool.mutation-gate] break`
+  and mirrored in `thresholds.break` (stryker.conf.json). Keep the two equal.
+- **Kill surviving mutants with real assertions.** If a mutant is genuinely
+  *equivalent* — it cannot change observable behaviour — annotate it at the
+  source (`# pragma: no mutate`, `// Stryker disable next-line <mutator>`) with a
+  one-line reason. Never blanket-disable a file, and never lower the threshold to
+  get to green.
+- **Tests that read `src/*.ts` off disk belong in a `*-parity.test.js` file.**
+  Inside Stryker's sandbox they read *mutated* source, so any mutant that changes
+  a string literal turns them red and is scored as "killed" by a test that never
+  ran the behaviour. `vitest.stryker.config.js` excludes that suffix; the normal
+  `ci/test-frontend.sh` run still includes it.
+- Label a PR `skip-mutation` to bypass both jobs.
+
+`tests/unit/conftest.py` executes the pure modules under their **real** dotted
+name (`custom_components.example_integration.<mod>`, with stub parent packages so
+the HA-importing `__init__.py` never runs) and aliases them to `ex.<mod>`. Keep
+it that way: mutmut matches a mutant's path-derived key against the function's
+`__module__`, and a mismatch makes every mutant look untested. It also has to
+stay in `tests/unit/` rather than `tests/` — as a root conftest its stub parent
+packages would shadow the real integration for the component tier, where Home
+Assistant imports `custom_components.example_integration` itself.
 
 ## Translations (quality gates)
 
@@ -220,6 +275,8 @@ See `RELEASE.md`.
 - `lint.yml` — ruff lint + format check, and **mypy** strict typing (HA installed).
 - `test.yml` — vitest, pure pytest unit, **component (in-process HA)**, i18n
   coverage, HACS validation, hassfest.
+- `mutation.yml` — mutation testing (mutmut + Stryker) on the code a PR changed;
+  fails below an 80% mutation score. `skip-mutation` label bypasses it.
 - `integration.yml` — Docker-based integration tests (no HA harness installed).
 - `e2e.yml` — Docker + Playwright; uploads the Playwright report on failure.
 - `walkthrough-preview.yml` — per-PR video walkthrough: captures the tour, publishes

@@ -5,7 +5,7 @@
 The project's workflow, conventions, and **hard gates** live in `AGENTS.md`
 (imported above) and `.amazonq/rules/`. Read them before pushing.
 
-Three gates worth repeating because they are easy to miss:
+Four gates worth repeating because they are easy to miss:
 
 1. **Every PR that touches the panel or card UI
    (`custom_components/example_integration/frontend/src/`) MUST include current
@@ -28,3 +28,10 @@ Three gates worth repeating because they are easy to miss:
    which blocks the real network the Docker tier needs. Run them separately
    (`ci/test-python-component.sh` vs `ci/test-python-integration.sh`). See
    AGENTS.md "Tests".
+
+4. **`mutation.yml` gates every PR at an 80% mutation score on the code it
+   changed** (mutmut for Python, Stryker for TypeScript). Surviving mutants mean a
+   test asserts nothing useful — kill them, or annotate a genuinely equivalent
+   mutant with a reason. Never lower the threshold to get green. The mutable
+   surface is an allowlist: `only_mutate` in `[tool.mutmut]` and `mutate` in
+   `stryker.conf.json`. See AGENTS.md "Mutation testing".
