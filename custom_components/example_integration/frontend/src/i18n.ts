@@ -17,6 +17,11 @@ let plural: Intl.PluralRules = new Intl.PluralRules(DEFAULT_LOCALE);
 /** Resolve an HA language code (e.g. "en-GB", "de-CH") to a bundled table. */
 function resolve(lang: string): { table: Table; tag: string } {
   const lc = lang.toLowerCase();
+  // Exact match first, so a bundled *regional* table ("pt-BR") wins over its
+  // base language. No shipped locale has a region yet, which makes this loop
+  // indistinguishable from the base-language loop below — every mutant here
+  // survives because the second loop returns the same answer. It is not dead
+  // code: add "pt-BR" to locales/ and it starts mattering immediately.
   for (const key of Object.keys(LOCALES)) {
     if (key.toLowerCase() === lc) return { table: LOCALES[key], tag: key };
   }
@@ -32,6 +37,11 @@ export function setLanguage(lang?: string): void {
   const { table, tag } = resolve(lang || DEFAULT_LOCALE);
   current = table;
   currentLang = tag;
+  // `tag` always comes back from `resolve` as a key of LOCALES or the default,
+  // so `Intl.PluralRules` cannot actually throw here — the guard is for a fork
+  // that bundles a tag Intl doesn't know. Unreachable, hence unkillable: every
+  // locale currently bundled shares the same plural categories, so skipping the
+  // assignment entirely is unobservable too.
   try {
     plural = new Intl.PluralRules(tag);
   } catch {
