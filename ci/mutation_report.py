@@ -50,9 +50,17 @@ MAX_LISTED = 40
 
 
 def configured_threshold() -> float:
-    """Read ``[tool.mutation-gate] break`` from pyproject.toml."""
-    with (ROOT / "pyproject.toml").open("rb") as handle:
-        config = tomllib.load(handle)
+    """Read ``[tool.mutation-gate] break`` from pyproject.toml.
+
+    An unreadable pyproject.toml is fatal rather than a quiet fall back to
+    ``DEFAULT_THRESHOLD``: silently substituting a threshold nobody configured is
+    how a gate stops meaning anything.
+    """
+    try:
+        with (ROOT / "pyproject.toml").open("rb") as handle:
+            config = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        sys.exit(f"[mutation] cannot read the threshold from pyproject.toml: {exc}")
     section = config.get("tool", {}).get("mutation-gate", {})
     return float(section.get("break", DEFAULT_THRESHOLD))
 
@@ -85,7 +93,12 @@ def parse_mutmut(
 
 def parse_stryker(path: Path) -> tuple[dict[str, int], list[str]]:
     """Parse Stryker's JSON report into a status tally and survivor list."""
-    report = json.loads(path.read_text("utf-8"))
+    try:
+        report = json.loads(path.read_text("utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        # A truncated report means the run died mid-write. Say so; do not let a
+        # half-read file be scored as if it were the whole run.
+        sys.exit(f"[mutation] cannot read the Stryker report at {path}: {exc}")
     tally: dict[str, int] = {}
     undetected: list[str] = []
     for file_path, entry in sorted(report.get("files", {}).items()):

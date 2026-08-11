@@ -60,14 +60,20 @@ def _git(*args: str) -> str:
 
 def python_surface() -> list[str]:
     """The ``only_mutate`` globs from ``[tool.mutmut]``."""
-    with (ROOT / "pyproject.toml").open("rb") as handle:
-        config = tomllib.load(handle)
+    try:
+        with (ROOT / "pyproject.toml").open("rb") as handle:
+            config = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        sys.exit(f"[mutation-scope] cannot read pyproject.toml: {exc}")
     return list(config.get("tool", {}).get("mutmut", {}).get("only_mutate", []))
 
 
 def typescript_surface() -> list[str]:
     """The ``mutate`` globs from ``stryker.conf.json``."""
-    config = json.loads((ROOT / "stryker.conf.json").read_text("utf-8"))
+    try:
+        config = json.loads((ROOT / "stryker.conf.json").read_text("utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        sys.exit(f"[mutation-scope] cannot read stryker.conf.json: {exc}")
     return list(config.get("mutate", []))
 
 
@@ -143,7 +149,12 @@ def python_filters(hunks: dict[str, list[tuple[int, int]]]) -> list[str]:
     filters: list[str] = []
     for path, ranges in sorted(hunks.items()):
         module = _module_name(path)
-        tree = ast.parse((ROOT / path).read_text("utf-8"), filename=path)
+        try:
+            tree = ast.parse((ROOT / path).read_text("utf-8"), filename=path)
+        except (OSError, SyntaxError) as exc:
+            # Failing loudly beats silently emitting no filter for the file:
+            # an empty scope reads as "nothing to test" and would pass the gate.
+            sys.exit(f"[mutation-scope] cannot parse {path}: {exc}")
         for node in tree.body:
             if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 if _overlaps(_definition_span(node), ranges):
