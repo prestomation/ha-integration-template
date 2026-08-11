@@ -31,7 +31,15 @@ Cheapest first. **Tiers 2 and 3 must run in separate environments** (socket rule
 
 1. **Pure unit** (`tests/unit`, `pip install pytest`): the pure core
    (`models.py`, `events.py`) and translation parity. Loaded in isolation via the
-   synthetic `ex` package in `tests/conftest.py` — these never import HA.
+   synthetic `ex` package in `tests/unit/conftest.py` — these never import HA.
+   That conftest *executes* the modules under their real dotted name
+   (`custom_components.example_integration.<mod>`, with stub parent packages so
+   the HA-importing `__init__.py` never runs) and registers `ex.<mod>` as an
+   alias. **Keep it that way**: mutmut matches a mutant's path-derived key
+   against the function's `__module__`, so executing them as `ex.<mod>` would
+   make every mutant look untested and abort the mutation run. **And keep it in
+   `tests/unit/`** — as a root conftest the stub packages would shadow the real
+   integration for tier 2, where HA imports the package itself.
 2. **Component / in-process HA** (`tests/component`,
    `pytest-homeassistant-custom-component` + `home-assistant-frontend`): real
    `hass`, registries, config entries, I/O mocked. Covers `config_flow`,
@@ -70,6 +78,38 @@ Keep them in separate dirs and separate CI steps.
 - `asyncio_mode` is set per-invocation by the component/integration runners (it
   needs `pytest-asyncio`, which only the HA harness installs) — not in the root
   `pyproject.toml`, so the pure unit tier stays dependency-light.
+
+## Mutation testing (the fifth tier — a PR gate)
+Coverage proves a line *ran*; mutation testing proves a test would have *failed*
+had that line been wrong. `mutation.yml` runs on every PR and scores only the code
+the branch touched.
+
+- **Runners:** `ci/test-mutation-python.sh` (mutmut, against `tests/unit`) and
+  `ci/test-mutation-frontend.sh` (Stryker, against vitest). Both take `--changed`
+  (default) or `--all`.
+- **The surface is an allowlist, in one place per language:** `only_mutate` in
+  `[tool.mutmut]` (pyproject.toml) and `mutate` in `stryker.conf.json`. It holds
+  only what the *fast* tiers cover — the pure Python core, and `utils.ts` /
+  `i18n.ts`. HA-coupled modules and the DOM-heavy `panel.ts`/`card.ts` are out:
+  mutating them means re-running the component or Docker tier thousands of times
+  for a score that mostly reports "no test covers this".
+- **Diff scoping:** `ci/mutation_scope.py` turns the diff into mutmut mutant-name
+  filters (changed line → enclosing function, via `ast`) and Stryker `--mutate`
+  line ranges. Scoping to whole files would fail a PR for pre-existing debt.
+- **The gate is 80%**, defined in `[tool.mutation-gate] break` and mirrored in
+  `thresholds.break` (stryker.conf.json) — **keep the two equal**. `--all` may sit
+  below it while the surface is still being brought up; the PR gate is what must
+  stay green.
+- **Surviving mutants are a test gap, not a formality.** Kill them with a real
+  assertion. When a mutant is genuinely *equivalent* (the mutation cannot change
+  observable behaviour), annotate it at the source — `# pragma: no mutate`,
+  `// Stryker disable next-line <mutator>` — **with a one-line reason**. Never
+  blanket-disable a file, and never lower the threshold to get green.
+- **Tests that read source off disk must be `*-parity.test.js`.** Under Stryker
+  they would read *mutated* text and go red for mutants they never exercised,
+  inflating the score; `vitest.stryker.config.js` excludes that suffix. Keep
+  static-analysis gates in those files and behavioural tests out of them.
+- Label a PR `skip-mutation` to bypass both jobs (for revert/infra PRs).
 
 ## Linting (ruff)
 Python is linted + formatted with **ruff** (config in `pyproject.toml`, enforced by

@@ -14,6 +14,25 @@ exclude_lines = [
     "raise NotImplementedError",
 ]
 
+# Mutation testing (ci/test-mutation-python.sh). Coverage says a line ran;
+# mutation testing says a test would have *failed* if that line were wrong.
+[tool.mutmut]
+source_paths = ["custom_components/example_integration"]
+# The mutable surface: the pure core, which the fast `tests/unit` tier covers
+# directly. Everything else in the integration imports Home Assistant and is
+# only exercised by the component and Docker tiers — far too slow to run once
+# per mutant, and scoring it here would just report noise.
+only_mutate = [
+    "custom_components/example_integration/models.py",
+    "custom_components/example_integration/events.py",
+]
+pytest_add_cli_args_test_selection = ["tests/unit"]
+
+[tool.mutation-gate]
+# Minimum mutation score, in percent, for both languages. The TypeScript side
+# reads its copy from `thresholds.break` in stryker.conf.json — keep them equal.
+break = 80
+
 # Strict typing is a Platinum quality-scale practice. CI (lint.yml) runs `mypy
 # custom_components/example_integration` with Home Assistant installed so HA's own
 # types resolve; keep the integration error-free. The template demonstrates the

@@ -32,5 +32,13 @@ tests/integration/ha_config/tts/
 # walkthrough-preview.yml). Local runs still write here for debugging.
 docs/videos/
 
+# Mutation testing scratch (mutmut copies the project into mutants/; Stryker
+# sandboxes into .stryker-tmp/ and writes its report into reports/).
+mutants/
+.mutmut-cache
+.stryker-tmp/
+stryker.log
+reports/
+
 # Build artifacts
 example_integration.zip
