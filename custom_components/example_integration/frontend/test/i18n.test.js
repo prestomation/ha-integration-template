@@ -10,6 +10,21 @@ import { DEFAULT_LOCALE, LOCALES } from '../src/locales/index.ts';
 // The i18n module holds global state; reset to the default after every test.
 afterEach(() => setLanguage(DEFAULT_LOCALE));
 
+// Every key `withKeys` stages carries this prefix, so the guard below can tell
+// staged keys from real ones.
+const TEST_KEY_PREFIX = 'tmp.';
+
+// `withKeys` writes into module-level singletons shared with every other test
+// file in the run, so prove after each test that it put them back. Without this
+// a leak would surface as a baffling failure somewhere else entirely — most
+// likely in i18n-parity.test.js, which asserts exact key parity across locales.
+afterEach(() => {
+  for (const [locale, table] of Object.entries(LOCALES)) {
+    const leaked = Object.keys(table).filter((key) => key.startsWith(TEST_KEY_PREFIX));
+    expect(leaked, `${locale} kept staged keys after the test`).toEqual([]);
+  }
+});
+
 /**
  * Run `body` with extra keys temporarily present in a locale table.
  *
@@ -17,12 +32,21 @@ afterEach(() => setLanguage(DEFAULT_LOCALE));
  * gate), which makes several real code paths — the per-key English fallback,
  * multi-character interpolation tokens — unreachable with the shipped data.
  * They are not dead code: they are what a fork mid-translation relies on. This
- * stages that state and always tears it back down.
+ * stages that state and always tears it back down, including if staging itself
+ * throws part-way through.
  */
 function withKeys(keys, body, locale = DEFAULT_LOCALE) {
   const table = LOCALES[locale];
-  for (const [key, value] of Object.entries(keys)) table[key] = value;
+  for (const key of Object.keys(keys)) {
+    if (!key.startsWith(TEST_KEY_PREFIX)) {
+      throw new Error(`staged key "${key}" must start with "${TEST_KEY_PREFIX}"`);
+    }
+    if (key in table) {
+      throw new Error(`staged key "${key}" would shadow a real one in ${locale}`);
+    }
+  }
   try {
+    for (const [key, value] of Object.entries(keys)) table[key] = value;
     body();
   } finally {
     for (const key of Object.keys(keys)) delete table[key];
