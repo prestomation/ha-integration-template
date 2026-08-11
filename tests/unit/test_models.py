@@ -6,7 +6,12 @@ import re
 
 import pytest
 from ex.const import MAX_NAME_LENGTH, MAX_VALUE, MIN_VALUE
-from ex.models import ItemValidationError, apply_update, build_item
+from ex.models import (
+    EDITABLE_FIELDS,
+    ItemValidationError,
+    apply_update,
+    build_item,
+)
 
 
 def test_build_item_assigns_id_and_created():
@@ -32,18 +37,11 @@ def test_build_item_strips_name():
     assert item["name"] == "Shelf"
 
 
-@pytest.mark.parametrize("bad", ["", "   ", None, 5])
-def test_build_item_rejects_bad_name(bad):
-    with pytest.raises(ItemValidationError):
-        build_item({"name": bad}, created="t")
-
-
-# The messages below are part of the contract, not decoration: the service
-# handlers surface them verbatim as the ServiceValidationError a user sees, so a
-# test that only asserts "something was raised" would let the wrong message —
-# or an empty one — ship unnoticed. `exactly()` anchors the pattern, because
-# pytest's `match=` is a *search*: an unanchored pattern happily passes on a
-# message with junk bolted onto either end.
+# Each rejection is asserted with its message, not just "something was raised".
+# The messages are contract, not decoration: the service handlers surface them
+# verbatim as the ServiceValidationError a user reads. `exactly()` anchors the
+# pattern, because pytest's `match=` is a *search* — an unanchored pattern passes
+# happily on a message with junk bolted onto either end.
 def exactly(message: str) -> str:
     """A `pytest.raises(match=...)` pattern that must match the whole message."""
     return f"^{re.escape(message)}$"
@@ -58,33 +56,16 @@ def exactly(message: str) -> str:
         ("   ", "name must not be empty"),
     ],
 )
-def test_build_item_bad_name_says_why(bad, message):
+def test_build_item_rejects_bad_name(bad, message):
     with pytest.raises(ItemValidationError, match=exactly(message)):
         build_item({"name": bad}, created="t")
 
 
+# bool is an int subclass, so True/False have to be rejected explicitly.
 @pytest.mark.parametrize("bad", [True, False, "3", 1.5, None])
 def test_build_item_rejects_non_int_value(bad):
-    with pytest.raises(ItemValidationError):
-        build_item({"name": "x", "value": bad}, created="t")
-
-
-def test_build_item_non_int_value_says_why():
     with pytest.raises(ItemValidationError, match=exactly("value must be an integer")):
-        build_item({"name": "x", "value": "3"}, created="t")
-
-
-def test_build_item_rejects_out_of_range_value():
-    with pytest.raises(ItemValidationError):
-        build_item({"name": "x", "value": 10_000_000}, created="t")
-
-
-def test_build_item_out_of_range_value_says_why():
-    with pytest.raises(
-        ItemValidationError,
-        match=exactly(f"value must be between {MIN_VALUE} and {MAX_VALUE}"),
-    ):
-        build_item({"name": "x", "value": MAX_VALUE + 1}, created="t")
+        build_item({"name": "x", "value": bad}, created="t")
 
 
 # ── boundaries ───────────────────────────────────────────────────────────────
@@ -121,7 +102,10 @@ def test_value_at_the_limits_is_accepted(value):
 
 @pytest.mark.parametrize("value", [MIN_VALUE - 1, MAX_VALUE + 1])
 def test_value_outside_the_limits_is_rejected(value):
-    with pytest.raises(ItemValidationError):
+    with pytest.raises(
+        ItemValidationError,
+        match=exactly(f"value must be between {MIN_VALUE} and {MAX_VALUE}"),
+    ):
         build_item({"name": "x", "value": value}, created="t")
 
 
@@ -131,6 +115,12 @@ def test_apply_update_tracks_changed_fields():
     assert updated["name"] == "Rack"
     assert updated["value"] == 2
     assert sorted(changed) == ["name", "value"]
+    # Callers hold the stored item; `apply_update` must hand back a copy rather
+    # than edit it in place, or the store's before/after comparison is moot.
+    # Asserting on `updated` alone can't tell the two apart.
+    assert updated is not item
+    assert item["name"] == "Shelf"
+    assert item["value"] == 1
 
 
 def test_apply_update_no_op_returns_empty_changed():
@@ -154,16 +144,26 @@ def test_apply_update_validates():
         apply_update(item, {"name": ""})
 
 
-@pytest.mark.parametrize(
-    ("data", "expected"),
-    [({"value": 7}, ["value"]), ({"name": "Rack"}, ["name"])],
-)
-def test_apply_update_handles_one_field_at_a_time(data, expected):
-    # `value` alone is the interesting half: the loop walks EDITABLE_FIELDS in
-    # order and has to *skip past* an absent `name` to reach it, rather than
-    # stopping at the first field the caller left out.
+# A replacement value per editable field, for the one-field-at-a-time test.
+# Driven off EDITABLE_FIELDS so adding a field to the model fails here loudly
+# instead of quietly leaving the new field's solo-update path untested.
+SOLO_UPDATES = {"name": "Rack", "value": 7}
+
+
+def test_solo_updates_covers_every_editable_field():
+    assert set(SOLO_UPDATES) == set(EDITABLE_FIELDS)
+
+
+@pytest.mark.parametrize("field", EDITABLE_FIELDS)
+def test_apply_update_handles_each_field_alone(field):
+    # Every field must be reachable on its own: the loop walks EDITABLE_FIELDS in
+    # order and has to *skip past* the ones the caller left out, rather than
+    # stopping at the first absent one. Parameterising over the constant means a
+    # reordering or a new field can't silently shrink what this covers.
     item = build_item({"name": "Shelf", "value": 1}, created="t")
-    updated, changed = apply_update(item, data)
-    assert changed == expected
-    for field, value in data.items():
-        assert updated[field] == value
+    updated, changed = apply_update(item, {field: SOLO_UPDATES[field]})
+    assert changed == [field]
+    assert updated[field] == SOLO_UPDATES[field]
+    for other in EDITABLE_FIELDS:
+        if other != field:
+            assert updated[other] == item[other]
