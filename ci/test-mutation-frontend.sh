@@ -59,10 +59,12 @@ RUN_STATUS=$?
 set -e
 
 # Summarise regardless of outcome, then hand Stryker's verdict back to the
-# caller — `thresholds.break` in stryker.conf.json is the gate.
+# caller — `thresholds.break` in stryker.conf.json is the gate. A Stryker crash
+# that never wrote a report still fails here, because RUN_STATUS carries it.
 python3 ci/mutation_report.py \
   --format stryker \
   --input "$REPORT" \
-  --title "Mutation testing (TypeScript)"
+  --title "Mutation testing (TypeScript)" \
+  --require-mutants
 
 exit "$RUN_STATUS"

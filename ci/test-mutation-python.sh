@@ -69,4 +69,5 @@ fi
   --format mutmut \
   --scope-file "$SCOPE_FILE" \
   --title "Mutation testing (Python)" \
-  --gate
+  --gate \
+  --require-mutants

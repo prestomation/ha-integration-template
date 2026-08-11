@@ -65,6 +65,26 @@ def configured_threshold() -> float:
     return float(section.get("break", DEFAULT_THRESHOLD))
 
 
+def check_thresholds_agree(threshold: float) -> None:
+    """Fail if pyproject.toml and stryker.conf.json disagree on the gate.
+
+    The two live apart because each tool reads its own config, so nothing stops
+    them drifting — and a drift means Python and TypeScript are quietly held to
+    different standards. Cheap to check, so check it every run.
+    """
+    try:
+        config = json.loads((ROOT / "stryker.conf.json").read_text("utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        sys.exit(f"[mutation] cannot read stryker.conf.json: {exc}")
+    stryker = config.get("thresholds", {}).get("break")
+    if stryker is None or float(stryker) != threshold:
+        sys.exit(
+            f"[mutation] threshold mismatch: [tool.mutation-gate] break = "
+            f"{threshold:g} but stryker.conf.json thresholds.break = {stryker}. "
+            "Keep them equal."
+        )
+
+
 def parse_mutmut(
     stream: list[str], scope: list[str]
 ) -> tuple[dict[str, int], list[str]]:
@@ -182,8 +202,16 @@ def main() -> int:
         action="store_true",
         help="exit non-zero when the score is below the threshold",
     )
+    parser.add_argument(
+        "--require-mutants",
+        action="store_true",
+        help="exit non-zero when nothing was scored at all",
+    )
     args = parser.parse_args()
 
+    # Always compare what the *configs* say, even when --threshold overrides the
+    # value used for this run — the point is to catch the two drifting apart.
+    check_thresholds_agree(configured_threshold())
     threshold = configured_threshold() if args.threshold is None else args.threshold
 
     if args.format == "mutmut":
@@ -202,7 +230,10 @@ def main() -> int:
                 f"## {args.title}\n\n"
                 "⚠️ No Stryker report was produced — the run failed before reporting.\n"
             )
-            return 0
+            # The caller propagates Stryker's own exit code, so this is already
+            # a failure there; return non-zero anyway so the script is honest
+            # when read on its own.
+            return 1 if args.require_mutants else 0
         tally, survivors = parse_stryker(args.input)
         percent, hits, misses = score(tally, STRYKER_DETECTED, STRYKER_UNDETECTED)
 
@@ -224,6 +255,18 @@ def main() -> int:
     scored = hits + misses
     passed = scored == 0 or percent >= threshold
     emit(render(args.title, tally, survivors, percent, hits, misses, threshold, passed))
+
+    if scored == 0 and args.require_mutants:
+        # The caller only gets here having asked for a non-empty scope, so zero
+        # scored mutants means the run did not do its job — every mutant errored,
+        # the filters matched nothing, or the tool died part-way. Treating that as
+        # a pass is the one failure mode worse than a false red.
+        print(
+            f"[mutation] no mutants were scored, but {len(tally)} outcome(s) were "
+            "reported and a scope was requested — the run did not test anything.",
+            file=sys.stderr,
+        )
+        return 1
 
     if scored == 0:
         print(

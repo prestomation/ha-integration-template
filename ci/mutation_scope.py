@@ -6,9 +6,11 @@ score would fail it for debt it did not create. So the PR check mutates only
 what the branch actually touched:
 
 * **Python** — changed lines are mapped, via ``ast``, to the enclosing top-level
-  function or method, and printed as mutmut mutant-name filters
-  (``package.module.x_func*``). mutmut only builds mutants for functions and
-  methods, so a changed line outside one contributes no filter.
+  function or method (decorators included), and printed as mutmut mutant-name
+  filters (``package.module.x_func*``). mutmut only builds mutants for top-level
+  functions and methods, so a changed line outside one — module-level code, a
+  nested closure — contributes no filter. There is nothing to run for those, but
+  it does mean the surface should stay free of significant module-level logic.
 * **TypeScript** — changed hunks are printed directly as Stryker ``--mutate``
   line ranges (``path/to/file.ts:12-40``).
 
@@ -112,14 +114,16 @@ def changed_hunks(base: str, surface: list[str]) -> dict[str, list[tuple[int, in
             continue
         match = _HUNK_RE.match(line)
         if not match:
-            continue
+            # Never silently narrow the scope: an unrecognised header would drop
+            # a real change and quietly turn the gate green.
+            sys.exit(f"[mutation-scope] unparseable hunk header in {current}: {line}")
         start = int(match.group(1))
         count = 1 if match.group(2) is None else int(match.group(2))
         if count == 0:
-            # A pure deletion. `start` is the line *before* the removed block,
-            # so attribute it there — an edit that only deletes code still
-            # changes the behaviour of its enclosing function.
-            hunks.setdefault(current, []).append((start, start))
+            # A pure deletion. `start` is the line *before* the removed block, so
+            # cover both it and the line that followed it — the deleted code sat
+            # between them, and either neighbour may be the enclosing function.
+            hunks.setdefault(current, []).append((start, start + 1))
             continue
         hunks.setdefault(current, []).append((start, start + count - 1))
     return hunks
