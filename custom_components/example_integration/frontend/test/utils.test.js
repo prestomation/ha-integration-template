@@ -36,6 +36,26 @@ describe('parseRoute / buildPath', () => {
     });
   });
 
+  // HA hands the panel whatever is in the address bar, and a doubled slash from
+  // a hand-edited URL or a concatenated prefix is ordinary. Trimming only *one*
+  // slash from each end would leave an empty leading segment, pushing 'items'
+  // to parts[1] and losing the detail id.
+  it('tolerates repeated leading and trailing slashes', () => {
+    for (const path of ['//items/abc123', '/items/abc123//', '///items/abc123///']) {
+      expect(parseRoute({ prefix: '/p', path })).toEqual({
+        view: 'list',
+        detailId: 'abc123',
+      });
+    }
+  });
+
+  it('builds the list path as a bare slash', () => {
+    // The round-trip test can't see this: parseRoute('') and parseRoute('/')
+    // both parse to the list, so an empty string would round-trip just fine
+    // while producing a href the browser resolves against the wrong base.
+    expect(buildPath({ view: 'list', detailId: null })).toBe('/');
+  });
+
   it('round-trips losslessly', () => {
     for (const state of [
       { view: 'list', detailId: null },
@@ -57,7 +77,16 @@ describe('formatDate', () => {
   it('returns empty string for missing/invalid input', () => {
     expect(formatDate(undefined)).toBe('');
     expect(formatDate('not-a-date')).toBe('');
+    expect(formatDate('')).toBe('');
   });
+
+  // `new Date(null)` is the Unix epoch, not an invalid date — without the
+  // explicit falsy guard a missing timestamp renders as 1/1/1970 rather than
+  // blank. Storage round-trips through JSON, so a null is entirely reachable.
+  it('returns empty string for a null timestamp rather than the epoch', () => {
+    expect(formatDate(null)).toBe('');
+  });
+
   it('formats a valid ISO date', () => {
     expect(formatDate('2026-01-15T10:00:00')).not.toBe('');
   });
