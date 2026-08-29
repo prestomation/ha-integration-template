@@ -30,7 +30,8 @@ items, each with a numeric value. It's deliberately trivial — the point is the
 | **Frontend** | A deep-linked sidebar **panel** (admin) and a dashboard **Lovelace card** (display), TypeScript + Rollup, with a tiny dependency-free i18n. |
 | **Translations** | Backend `strings.json` + `translations/` and frontend `src/locales/` (`en`, `de`), guarded by parity tests. |
 | **Tests** | Four tiers: pure unit, **in-process HA** component, Docker integration, and Playwright e2e + screenshot capture. |
-| **CI / release** | `lint` (ruff), `test`, `integration`, `e2e`, `hacs`, and a version-checked `release` workflow; plus dependabot and issue/PR templates. |
+| **CI / release** | `lint`, `test`, `integration`, `e2e`, `mutation`, `hacs`, a version-checked `release` workflow, and a nightly run against the Home Assistant beta. Plus dependabot and issue/PR templates. |
+| **Guardrails** | Automated gates covering types, prose, tests, mutation score, translations, fixtures, API-surface drift, and release consistency. See [Guardrails](#guardrails). |
 | **Agentic rules** | `AGENTS.md`, `CLAUDE.md`, `.amazonq/rules/`, and a SessionStart hook — conventions and hard gates that coding agents auto-load. |
 | **Rename script** | `scripts/rename.py your_domain "Your Name"` rewrites every placeholder + renames the component dir in one step. |
 
@@ -112,14 +113,51 @@ real tier depends on the domain you build after forking (whether your integratio
 talks to a device, needs discovery/auth, etc.). Add the manifest key and a
 `quality_scale.yaml` ledger once your integration's scope is settled.
 
-## Conventions & hard gates
+## Guardrails
 
-The workflow, conventions, and gates live in [`AGENTS.md`](AGENTS.md) and
-[`.amazonq/rules/`](.amazonq/rules/). Two that are easy to miss:
+Most of the value in this template is the set of checks it brings with it. Each one
+exists because the failure it catches leaves no trace on its own: a job that goes
+green having tested a Home Assistant nobody runs, or a changelog entry for work that
+never reached a release.
 
-1. **Any PR touching the panel or card UI must include current screenshots** captured
-   with the Playwright harness.
-2. **Every data action is a service; every state change fires a documented event.**
+The workflow and conventions behind them live in [`AGENTS.md`](AGENTS.md) and
+[`.amazonq/rules/`](.amazonq/rules/).
+
+**On every pull request:**
+
+| Guardrail | Where | What it catches |
+|---|---|---|
+| **ruff** lint + format | `lint.yml` | Style and formatting drift across `custom_components`, `tests`, `ci`, `scripts`. |
+| **mypy**, strict, with Home Assistant installed | `lint.yml` | Type errors against the real HA API. The integration is fully typed and includes `py.typed`. |
+| **Stale Home Assistant resolve** | `ci/check-ha-version.py` | pip quietly backtracking to a months-old HA when the runner's Python sits below HA's floor. The job stays green while checking an API nobody runs. |
+| **Prose linting for AI-writing tells** | `lint.yml` (vale) | "Delve", empty padding, em-dash overuse in the README, CHANGELOG, `docs/`, and the strings Home Assistant renders. Scoped to the lines a PR touches. |
+| **CHANGELOG release gap** | `ci/check-changelog-release-gap.py` | An entry folded into a section whose version is already tagged. The release job sees no version bump, skips, and the entry never reaches a user. |
+| **The test tiers** | `test.yml`, `integration.yml`, `e2e.yml` | Pure unit, in-process HA component, Docker integration over REST/WS, and Playwright in a real browser. |
+| **Mutation testing at 80%** | `mutation.yml` | A test that runs a line without asserting anything that would catch it being wrong. Scoped to the code the branch changed. |
+| **Coverage comment** | `pytest_coverage.yml` | Untested new code, surfaced in review rather than in a report nobody opens. |
+| **Translation parity** | `tests/unit/test_translations_parity.py`, `frontend/test/i18n.test.js` | Missing keys, mismatched `{placeholders}`, and English left in a non-English locale. |
+| **Localized exceptions** | `tests/unit/test_exception_translations.py` | A `raise` a user could see that has no `translation_key` behind it. |
+| **API-surface drift** | `tests/unit/test_api_surface.py` | A service, event, payload field, websocket command, or entity platform added to one registry and forgotten in the others. Parses the component's own source and compares it to `api_surface.py`. |
+| **Seeded fixture cleanliness** | `tests/unit/test_integration_fixture_clean.py` | A local Docker run committed back into the seeded config entry, which then fails on a pristine checkout while passing locally. |
+| **HACS validation + hassfest** | `test.yml`, `hacs.yml` | Manifest, brand, and repository-structure problems that block installation. |
+| **Release consistency** | `release.yml` | `manifest.json` version, `const.py` `PANEL_VERSION`, and the `## [X.Y.Z]` CHANGELOG section disagreeing with each other. |
+| **Dependabot auto-merge** | `dependabot-auto-merge.yml` | A bump merging on a partial check list. It waits for every check on the head commit, not the hand-maintained required-checks list. |
+
+**Nightly, gating nothing:**
+
+| Guardrail | Where | What it catches |
+|---|---|---|
+| **Home Assistant beta run** | `ha-beta.yml` | A breaking change in the next HA release, roughly four weeks before users get it. Runs the Docker and browser tiers against `beta` and type-checks against a pre-release HA, then files one reusable issue. |
+
+**Enforced in review, not by a job:**
+
+- **Screenshots.** A PR touching the panel or card UI is not mergeable until the body
+  embeds current screenshots of the changed surface, captured with the Playwright
+  harness and committed under `docs/images/`.
+- **The video walkthrough.** A PR adding a new user-facing UI surface extends the tour
+  in `tests/e2e/videos.capture.ts`. CI captures it and posts a sticky comment with the
+  gif, so nothing is committed. Capture itself is a soft gate.
+- **Every data action is a service, and every state change fires a documented event.**
 
 ## License
 

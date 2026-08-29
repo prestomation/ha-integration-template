@@ -9,6 +9,11 @@ All payloads are built by **pure functions in `events.py`** (no HA imports), fir
 at the **`store.py` mutation chokepoint** — so every surface (panel websocket,
 service call, future integrations) is observed identically.
 
+The machine-readable index of the same catalog lives in `api_surface.py`
+(`EVENTS` and `PAYLOAD_SPINES`). `tests/unit/test_api_surface.py` calls the real
+builders and compares their keys against it, so a payload field added to `events.py`
+and described nowhere fails the build rather than reaching you undocumented.
+
 ## Event catalog
 
 Names follow `example_integration_<noun>_<verb>`.

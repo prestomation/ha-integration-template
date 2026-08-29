@@ -23,6 +23,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 
 from . import card, panel, websocket_api
+from .api_surface import SERVICE_NAMES
 from .const import DOMAIN, PLATFORMS
 from .coordinator import ExampleCoordinator
 from .models import ItemValidationError
@@ -44,10 +45,6 @@ UPDATE_ITEM_SCHEMA = vol.Schema(
     }
 )
 DELETE_ITEM_SCHEMA = vol.Schema({vol.Required("item_id"): cv.string})
-
-# Services registered once (module-global) and torn down when the last entry
-# unloads. Listed here so teardown stays in sync with registration.
-_SERVICES = ("add_item", "update_item", "delete_item")
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -77,7 +74,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry (and its services once the last entry is gone)."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded and not hass.config_entries.async_loaded_entries(DOMAIN):
-        for service in _SERVICES:
+        # Iterating the model rather than a local list is what keeps teardown honest:
+        # a service registered below but never added to `api_surface.SERVICES` fails
+        # the drift test, and one added to the model is torn down without a second
+        # edit here.
+        for service in SERVICE_NAMES:
             hass.services.async_remove(DOMAIN, service)
     return unloaded
 

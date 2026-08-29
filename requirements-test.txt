@@ -4,6 +4,11 @@ pytest-timeout
 requests
 websockets
 
+# For the API-surface drift guard, which reads services.yaml. The pure unit tier
+# otherwise needs only `pip install pytest`, so those two checks skip when PyYAML
+# is absent and the rest of the tier still runs.
+PyYAML
+
 # Linting / formatting (also enforced in CI by .github/workflows/lint.yml).
 ruff
 

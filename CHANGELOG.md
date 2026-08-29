@@ -8,6 +8,16 @@ is the single source of truth (see `RELEASE.md`).
 ## [Unreleased]
 
 ### Added
+- **A full set of guardrails, ported from a production integration built on this
+  template.** New PR checks cover prose linting, a stale-Home-Assistant resolve, an
+  already-released CHANGELOG section, coverage reporting, seeded-fixture hygiene, and
+  API-surface drift; a nightly run against the Home Assistant beta gives about four
+  weeks of warning before a breaking release. The README's Guardrails section lists
+  each one and what it catches.
+- **`api_surface.py`, the single index of every integrator-facing surface.** Services,
+  events and payload spines, entity platforms and attributes, websocket commands and
+  HTTP routes are declared once, the runtime consumes the model, and a drift test
+  parses the component source to fail when the two disagree.
 - **Platinum-tier practices baked into the template.** Strict typing (`py.typed` +
   `mypy` in `lint.yml`), localized service exceptions (`strings.json` → `exceptions`,
   en + de) with an AST drift-guard test, a single service `DeviceInfo` grouping the

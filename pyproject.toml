@@ -18,10 +18,24 @@ exclude_lines = [
 # mutation testing says a test would have *failed* if that line were wrong.
 [tool.mutmut]
 source_paths = ["custom_components/example_integration"]
+# mutmut runs the suite inside a `mutants/` copy that holds only the source paths
+# and the tests, so a unit test that reads a repo file off disk dies at collection
+# unless that file is listed here. `tests/unit/test_ci_check_ha_version.py` and
+# `test_check_changelog_release_gap.py` load their scripts from `ci/` by path (the
+# hyphenated filenames are not importable), and `test_integration_fixture_clean.py`
+# reads the seeded Docker-tier fixture. The trap is that this only breaks a PR that
+# also touches mutable Python — every other PR skips mutmut entirely and never finds
+# out. Directories, not bare files: mutmut `copy2`s a file without creating its
+# parent, and only `copytree`s a directory into place.
+also_copy = ["ci", "tests/integration/ha_config"]
 # The mutable surface: the pure core, which the fast `tests/unit` tier covers
 # directly. Everything else in the integration imports Home Assistant and is
 # only exercised by the component and Docker tiers — far too slow to run once
-# per mutant, and scoring it here would just report noise.
+# per mutant, and scoring it here would just report noise. Also excluded:
+# const.py and api_surface.py, which are data rather than logic — api_surface is
+# a declarative index of the integration's surfaces, pinned by
+# tests/unit/test_api_surface.py against the real registrations rather than by
+# behavioural assertions.
 only_mutate = [
     "custom_components/example_integration/models.py",
     "custom_components/example_integration/events.py",
@@ -37,10 +51,14 @@ break = 80
 # custom_components/example_integration` with Home Assistant installed so HA's own
 # types resolve; keep the integration error-free. The template demonstrates the
 # practice without declaring a quality_scale tier in the manifest (see README).
-# Target 3.13 to match modern Home Assistant (it uses 3.13-only typing syntax, so a
-# lower target makes mypy fail to even parse HA's own sources).
 [tool.mypy]
-python_version = "3.13"
+# Tracks the Python floor Home Assistant itself requires, not the integration's.
+# HA's source uses syntax from its own minimum Python — 2026.3 raised the floor to
+# 3.14.2, and 2026.8 uses PEP 758 parenthesis-free `except A, B:` — which mypy
+# cannot even *parse* when targeting an older version. It bails with a syntax error
+# inside HA and reports nothing about our code, so this silently stops being a gate.
+# Keep it in step with the mypy job's `python-version` in lint.yml.
+python_version = "3.14"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true

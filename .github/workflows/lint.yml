@@ -25,12 +25,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # Must be at or above Home Assistant's own Python floor. Pin it lower and pip
+      # does not fail — it backtracks to the last HA release that supported this
+      # version, and the gate silently type-checks a months-old API. Keep this, and
+      # `[tool.mypy] python_version`, tracking HA's floor rather than the
+      # integration's. See ci/check-ha-version.py.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      # Install Home Assistant so its own types resolve — strict typing against the
+      # real HA API is the Platinum quality-scale practice this template
+      # demonstrates. Add the integration's own manifest requirements here too, so
+      # their imports resolve.
+      - name: Install mypy + Home Assistant
+        run: pip install mypy homeassistant
+      - name: Report and verify the Home Assistant version being checked
+        run: python ci/check-ha-version.py
+      - name: Mypy (strict typing)
+        run: mypy custom_components/example_integration
+
+  vale:
+    # User-facing prose is linted for AI-tell phrasing ("delve", "it's important to
+    # note", em-dash overuse, …). Diff-scoped (`filter_mode: added`), so it gates new
+    # prose without failing on whatever the existing corpus already says.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      # errata-ai renamed this org to vale-cli; SHA-pinned to v3.0.0.
+      - uses: vale-cli/vale-action@518a9136acc6e6668ce7c00d367051e0941e87ff # v3.0.0
+        with:
+          fail_on_error: true
+          # v3.0.0 changed fail_on_error to fail only on `error`-severity findings
+          # (previously any severity). fail_level: any restores the old, stricter
+          # behavior this gate relies on.
+          fail_level: any
+          reporter: github-pr-review
+          filter_mode: added
+
+  changelog-release-gap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # ci/check-changelog-release-gap.py needs the base branch's history and
+          # every release tag to tell an already-shipped section from one still
+          # being iterated.
+          fetch-depth: 0
+          fetch-tags: true
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      # Install Home Assistant so its own types resolve — strict typing against the
-      # real HA API is the Platinum quality-scale gate (quality_scale.yaml).
-      - name: Install mypy + Home Assistant
-        run: pip install mypy homeassistant
-      - name: Mypy (strict typing)
-        run: mypy custom_components/example_integration
+      - name: Guard against editing an already-released CHANGELOG section
+        run: python3 ci/check-changelog-release-gap.py

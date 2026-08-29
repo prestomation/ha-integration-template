@@ -1,0 +1,240 @@
+name: HA beta (early warning)
+
+# PRs test `stable` — what users actually run. That is the right default, and it is
+# also why a breaking Home Assistant change lands with no warning: by the time
+# `stable` *is* the breaking release, users are already on it. (Home Assistant
+# 2026.8 split devices per config entry and broke device attachment across the
+# custom-integration ecosystem with no advance signal.)
+#
+# Beta week is public roughly four weeks ahead of a release, so this job runs the
+# container suites against `beta` nightly. A failure here is the warning that a
+# breaking change is inbound — it gates nothing.
+#
+# The two jobs that matter most for advance notice are `upgrade` (which this
+# template does not ship — see below) and `typing`: upstream deprecations and
+# signature changes surface as type errors well before they surface as broken
+# behaviour, and a type check is the cheapest early warning there is.
+#
+# Anything resting on a Home Assistant framework contract — device registry, entity
+# registry, device automation — needs an assertion in the Docker tier, not just the
+# component tier: a mocked framework cannot see the contract change.
+#
+# Cross-version behaviour also deserves an *upgrade* test — boot a frozen older HA
+# against a seeded config dir, then boot the current one against the same dir so HA
+# runs its own migration in between. That needs fixtures specific to your domain, so
+# the template leaves it to you; add a `tests/upgrade` tier and a job here once your
+# integration stores anything HA migrates.
+on:
+  schedule:
+    # 07:00 UTC daily — after HA's usual release/beta publishing window.
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      ha_tag:
+        description: "Home Assistant image tag to test against"
+        required: false
+        default: "beta"
+
+env:
+  HA_TAG: ${{ github.event.inputs.ha_tag || 'beta' }}
+
+jobs:
+  integration:
+    name: Integration (HA ${{ github.event.inputs.ha_tag || 'beta' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      # Deliberately NOT pytest-homeassistant-custom-component: it pulls in
+      # pytest-socket, which blocks the real HTTP this tier needs.
+      - name: Install integration test deps
+        run: pip install pytest requests websockets
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: custom_components/example_integration/frontend/package-lock.json
+
+      - name: Install frontend deps
+        run: npm ci --prefix custom_components/example_integration/frontend
+
+      - name: Build panel JS
+        run: bash ci/build-panel.sh
+
+      - name: Start Home Assistant
+        working-directory: tests/integration
+        run: docker compose up -d
+
+      - name: Wait for Home Assistant to start
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null || true)
+            if [ "$code" = "200" ] || [ "$code" = "401" ]; then
+              echo "Home Assistant is responding (HTTP $code, attempt $i)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Home Assistant failed to start within 120s"
+          (cd tests/integration && docker compose logs)
+          exit 1
+
+      # Informational only: `continue-on-error` so a broken diagnostic can never
+      # abort the suite it precedes. A one-line version `print` that raised took out
+      # a whole nightly once and filed a regression issue against working code.
+      - name: Report the version actually tested
+        continue-on-error: true
+        working-directory: tests/integration
+        run: docker compose exec -T homeassistant python -c "from homeassistant.const import __version__; print('HA', __version__)"
+
+      - name: Run integration tests
+        run: bash ci/test-python-integration.sh
+
+      - name: Dump Home Assistant logs on failure
+        if: failure()
+        working-directory: tests/integration
+        run: docker compose logs homeassistant
+
+      - name: Cleanup
+        if: always()
+        working-directory: tests/integration
+        run: docker compose down -v
+
+  e2e:
+    name: E2E (HA ${{ github.event.inputs.ha_tag || 'beta' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install frontend deps
+        run: npm ci --prefix custom_components/example_integration/frontend
+
+      - name: Build panel JS
+        run: bash ci/build-panel.sh
+
+      - name: Install e2e deps
+        run: npm ci --prefix tests/e2e
+
+      - name: Install Playwright Chromium
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Home Assistant
+        working-directory: tests/integration
+        run: docker compose up -d
+
+      - name: Wait for Home Assistant to start
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8123/api/ 2>/dev/null || true)
+            if [ "$code" = "200" ] || [ "$code" = "401" ]; then exit 0; fi
+            sleep 2
+          done
+          (cd tests/integration && docker compose logs)
+          exit 1
+
+      - name: Run Playwright e2e
+        run: bash ci/test-e2e.sh
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-beta
+          path: |
+            tests/e2e/playwright-report/
+            tests/e2e/test-results/
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        working-directory: tests/integration
+        run: docker compose down -v
+
+  typing:
+    name: mypy against pre-release HA
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Must be at or above Home Assistant's own Python floor. Pin it too low and
+      # pip quietly backtracks to the last release that still supported it rather
+      # than failing, and this job type-checks an HA from six months ago — see
+      # ci/check-ha-version.py.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      # The cheapest early warning there is: upstream deprecations and signature
+      # changes surface as type errors well before they surface as broken behaviour.
+      - name: Install pre-release Home Assistant
+        run: pip install --pre mypy homeassistant
+
+      # Not `continue-on-error`: for *this* job the version under test is the whole
+      # point, so a stale resolve is a real failure rather than a lost diagnostic.
+      - name: Report and verify the version actually tested
+        run: python ci/check-ha-version.py --pre
+
+      - name: Run mypy
+        run: mypy custom_components/example_integration
+
+  report:
+    name: File a regression issue
+    needs: [integration, e2e, typing]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      # One open issue, reused. A breaking beta stays broken for weeks, and a fresh
+      # issue every night would bury the original diagnosis.
+      - name: Find or create the tracking issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const label = 'ha-beta-regression';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `Nightly Home Assistant \`beta\` run failed: ${runUrl}\n\n` +
+              `This integration may be broken on the next Home Assistant release. ` +
+              `Check which job failed — \`typing\` points at a deprecated or changed ` +
+              `API, \`integration\`/\`e2e\` at behaviour that no longer works.`;
+
+            // Make sure the label exists before searching or applying it.
+            try {
+              await github.rest.issues.getLabel({ ...context.repo, name: label });
+            } catch {
+              await github.rest.issues.createLabel({
+                ...context.repo, name: label, color: 'B60205',
+                description: 'Fails against the Home Assistant beta',
+              });
+            }
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, labels: label, state: 'open', per_page: 1,
+            });
+
+            if (open.length) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: open[0].number, body,
+              });
+              core.notice(`Commented on existing issue #${open[0].number}`);
+            } else {
+              const { data: issue } = await github.rest.issues.create({
+                ...context.repo,
+                title: 'Fails against the Home Assistant beta',
+                body, labels: [label],
+              });
+              core.notice(`Opened issue #${issue.number}`);
+            }
