@@ -6,6 +6,13 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["custom_components/example_integration"]
+# Store paths relative to the repo root rather than absolute. `pytest_coverage.yml`
+# hands `.coverage` to py-cov-action, which runs `coverage json` inside a Docker
+# container where the workspace is mounted at a different path — an absolute
+# `/home/runner/work/…` recorded by the runner does not exist there, and the action
+# dies with "No source for code". Nothing surfaces this locally: `coverage json` in
+# the repo root relativizes such paths against the cwd they already sit under.
+relative_files = true
 
 [tool.coverage.report]
 exclude_lines = [
