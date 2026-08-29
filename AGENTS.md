@@ -219,6 +219,14 @@ surface.
   Docker integration tier **cannot share a pytest invocation**: the component CI
   step installs the harness; the integration CI step deliberately does **not**
   (and passes `-p no:pytest_socket`). Keep them in separate dirs and steps.
+- **The unit tier and the component tier cannot share one either**, for a second
+  reason that bites even in a single environment: `tests/unit/conftest.py` installs
+  stub `custom_components.example_integration` parent packages so the pure core loads
+  without Home Assistant. Collect both tiers in one pytest process and that stub is
+  in `sys.modules` when HA imports the integration for real, so every component test
+  dies with *"No setup or config entry setup function defined"* — HA found the stub.
+  Anything wanting both (the coverage job, say) runs two invocations and combines
+  with `--cov-append`.
 - The component tier needs HA + a built frontend package: `pip install
   pytest-homeassistant-custom-component home-assistant-frontend` (the latter
   provides `hass_frontend`, which the `frontend` dependency requires at setup).

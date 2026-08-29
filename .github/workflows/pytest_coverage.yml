@@ -43,11 +43,24 @@ jobs:
 
       # The unit + component tiers only. The Docker integration tier needs a live
       # container and real sockets, which pytest-socket (pulled in by the HA
-      # harness installed above) blocks — the two cannot share an invocation.
-      - name: Run unit + component tests with coverage
+      # harness installed above) blocks.
+      #
+      # Two invocations, not one: `tests/unit/conftest.py` installs stub
+      # `custom_components.example_integration` parent packages so the pure core
+      # loads without Home Assistant. Collected in the same process as the
+      # component tier, that stub shadows the real integration and HA sets it up
+      # to find no `async_setup_entry`. `--cov-append` on the second run
+      # accumulates into the same `.coverage` the comment action reads.
+      - name: Run unit tests with coverage
         run: |
-          python -m pytest tests/unit tests/component -o asyncio_mode=auto \
-            --cov=custom_components/example_integration --cov-report=term-missing
+          python -m pytest tests/unit \
+            --cov=custom_components/example_integration --cov-report=
+
+      - name: Run component tests with coverage
+        run: |
+          python -m pytest tests/component -o asyncio_mode=auto \
+            --cov=custom_components/example_integration --cov-append \
+            --cov-report=term-missing
 
       - name: "Generate coverage Comment (and possibly Post to PR)"
         id: coverage_comment
