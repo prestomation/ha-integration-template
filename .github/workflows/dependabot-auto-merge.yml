@@ -1,0 +1,85 @@
+name: Dependabot auto-merge
+
+# Auto-merges Dependabot PRs (github-actions, pip, npm — see .github/dependabot.yml)
+# once EVERY check on the PR is green, for any bump including majors: the suite is
+# what decides whether a bump is safe, so trust it and keep the dependency churn out
+# of review.
+#
+# The guardrail here is the *every*. The obvious implementation, `gh pr merge
+# --auto`, waits only for the checks listed under branch protection's "required
+# status checks" — a list maintained by hand, in a different place from the
+# workflows, which drifts the moment a job is added or renamed. In the incident this
+# replaced, that list had gone out of sync with the test workflow's actual jobs, and
+# a major dependency bump merged 65 seconds after its own test job failed.
+#
+# So this waits on the checks that actually exist on the PR head, whatever they are.
+# Keep required status checks configured too (Settings → Branches) as
+# defense-in-depth for human squash-merges — but don't depend on it here.
+#
+# (Not `gh pr checks --watch`: this job is itself a check run on the same commit, so
+# watching "all checks" would include waiting for itself.)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    name: Dependabot auto-merge
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    timeout-minutes: 30
+    steps:
+      - name: Wait for every other check, then merge
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+          # This job's own check-run name, excluded from the wait.
+          SELF: Dependabot auto-merge
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Give the other workflows a moment to register their check runs, so an
+          # empty list isn't mistaken for "everything passed".
+          sleep 30
+
+          for attempt in $(seq 1 100); do
+            runs=$(gh api "repos/$REPO/commits/$SHA/check-runs" --paginate \
+              --jq ".check_runs[] | select(.name != \"$SELF\") | \
+                    [.name, .status, (.conclusion // \"\")] | @tsv")
+
+            if [ -z "$runs" ]; then
+              echo "attempt $attempt: no other checks registered yet, waiting..."
+              sleep 15
+              continue
+            fi
+
+            failed=$(echo "$runs" | awk -F'\t' \
+              '$2 == "completed" && $3 != "success" && $3 != "skipped" && $3 != "neutral" { print $1 " (" $3 ")" }')
+            if [ -n "$failed" ]; then
+              echo "::error::Not merging — failing checks:"
+              echo "$failed"
+              exit 1
+            fi
+
+            pending=$(echo "$runs" | awk -F'\t' '$2 != "completed" { print $1 " (" $2 ")" }')
+            if [ -z "$pending" ]; then
+              echo "All checks green:"
+              echo "$runs" | cut -f1 | sed 's/^/  /'
+              gh pr merge --squash "$PR_URL"
+              exit 0
+            fi
+
+            echo "attempt $attempt: waiting on $(echo "$pending" | wc -l) check(s)"
+            echo "$pending" | sed 's/^/  /'
+            sleep 15
+          done
+
+          echo "::error::Checks did not finish in time; not merging."
+          exit 1

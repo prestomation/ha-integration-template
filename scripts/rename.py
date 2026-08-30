@@ -52,6 +52,8 @@ SKIP_DIRS = {
     "test-results",
     "playwright-report",
     ".auth",
+    # Vale style packages fetched by `vale sync`. Synced dependency, not source.
+    "styles",
 }
 SKIP_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2", ".zip"}
 # The built bundles are gitignored/derived; never rewrite them.

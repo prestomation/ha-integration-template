@@ -1,6 +1,7 @@
 """Pytest configuration for the pure unit tests.
 
-The model and event-payload builders are pure Python (they import nothing from
+The model, the event-payload builders and the API-surface index are pure Python
+(they import nothing from
 Home Assistant), so we load them in isolation here under a synthetic ``ex``
 package. This lets the high-value core tests run without the full HA test
 harness (``pip install pytest`` is enough) while still pointing coverage at the
@@ -36,7 +37,7 @@ _CUSTOM_COMPONENTS_DIR = _ROOT / "custom_components"
 _COMPONENT_DIR = _CUSTOM_COMPONENTS_DIR / "example_integration"
 
 _PKG = "custom_components.example_integration"
-_PURE_MODULES = ("const", "models", "events")
+_PURE_MODULES = ("const", "models", "events", "api_surface")
 
 
 def _stub_package(name: str, path: Path) -> None:
@@ -54,7 +55,11 @@ def _stub_package(name: str, path: Path) -> None:
 
 
 def _load_pure_modules() -> None:
-    """Load const/models/events without importing Home Assistant."""
+    """Load the pure modules without importing Home Assistant.
+
+    Order matters: ``const`` is loaded first because ``api_surface`` does
+    ``from . import const``.
+    """
     if "ex" in sys.modules:
         return
     _stub_package("custom_components", _CUSTOM_COMPONENTS_DIR)

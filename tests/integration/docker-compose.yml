@@ -1,6 +1,10 @@
 services:
   homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
+    # HA_TAG selects the Home Assistant version. It defaults to `stable`, so e2e,
+    # integration and the walkthrough capture keep testing what users actually run.
+    # The nightly `ha-beta.yml` workflow sets `beta` — that's the early warning that
+    # a breaking change is inbound, roughly four weeks before it reaches users.
+    image: ghcr.io/home-assistant/home-assistant:${HA_TAG:-stable}
     ports:
       - "8123:8123"
     volumes:

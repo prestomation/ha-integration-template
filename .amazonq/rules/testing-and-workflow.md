@@ -3,11 +3,24 @@
 ## Git & PR workflow
 - Never push directly to `main`. Work on a feature branch and open a PR; squash
   merge.
-- Update `CHANGELOG.md` for every user-facing change before a release.
+- Update `CHANGELOG.md` for every user-facing change before a release. **Never add an
+  entry to a section whose version is already tagged** — `release.yml` keys off an
+  unchanged `manifest.json` version and skips, so the entry never ships. Bump the
+  version and open a new section instead. `lint.yml`'s `changelog-release-gap` job
+  (`ci/check-changelog-release-gap.py`) enforces it; folding into a section that is
+  not yet tagged stays the normal workflow.
+- **User-facing prose is vale-linted for AI-writing tells**, diff-scoped to the lines
+  a PR touches: `README.md`, `CHANGELOG.md`, `docs/*.md`, `strings.json`,
+  `services.yaml`, and the English frontend locale. Config and the pinned style
+  package are in `.vale.ini`. Run `vale sync && vale <paths>` locally, but do not
+  treat a clean local run as proof CI is clean — the action pins its own binary.
 - Post screenshots to the PR for any change that adds/changes/fixes UI (capture via
   `tests/e2e/screenshots.capture.ts`, commit under `docs/images/`, embed via a
   `raw.githubusercontent.com/.../<commit-sha>/docs/images/<file>.png` URL in an
-  HTML `<img>` tag — not markdown).
+  HTML `<img>` tag — not markdown). Look at every PNG before committing it, and
+  remember that **a screenshot is documentation, not verification**: a capture
+  renders a bug as faithfully as it renders correct output. When a capture adds a
+  surface, add an assertion on that surface under `tests/e2e/tests/` in the same PR.
 - **Video walkthrough (per-PR, CI-generated, never committed).** `walkthrough-preview.yml`
   runs the capture harness (`tests/e2e/videos.capture.ts`) on every PR, transcodes
   to gif+mp4 via `ci/capture-video.sh` (needs `ffmpeg`), publishes them to an orphan
@@ -75,6 +88,15 @@ Keep them in separate dirs and separate CI steps.
   That's the only tracked `.storage` file; HA mutates it at runtime, so restore the
   committed fixture with `git checkout` after a local run and don't commit the
   runtime version. Everything else under `.storage/` is gitignored.
+  `tests/unit/test_integration_fixture_clean.py` fails when a runtime-written key
+  reaches git — the dirty fixture keeps passing locally against the container that
+  dirtied it, and only breaks on a pristine checkout.
+- **A unit test that reads a repo file off disk needs that file's directory in
+  `[tool.mutmut] also_copy`.** mutmut runs the suite in a `mutants/` copy holding
+  only the source paths and the tests, so a test loading `ci/check-ha-version.py` by
+  path dies at collection there. It only breaks a PR that *also* changes mutable
+  Python, so the failure hides for months. List the directory, not the file: mutmut
+  `copy2`s a bare file without creating its parent.
 - `asyncio_mode` is set per-invocation by the component/integration runners (it
   needs `pytest-asyncio`, which only the HA harness installs) — not in the root
   `pyproject.toml`, so the pure unit tier stays dependency-light.
@@ -138,6 +160,40 @@ never leaving it in English. `python3 ci/i18n-coverage.py` reports coverage
   section. PEP 440 pre-release suffixes (`bN`/`aN`/`rcN`) ship as GitHub
   pre-releases → HACS beta channel.
 - The built `example-panel.js` / `example-card.js` are gitignored; CI builds them.
+
+## Home Assistant versions
+- **PRs test `stable`**; a nightly (`ha-beta.yml`) tests `beta` and gates nothing.
+  Beta week is public roughly four weeks ahead of a release, which is the warning
+  window for a breaking change. The container version is `HA_TAG` in
+  `tests/integration/docker-compose.yml`.
+- **Any job that `pip install`s Home Assistant must run on a Python at or above HA's
+  own floor, and must verify what pip resolved** with `ci/check-ha-version.py` (add
+  `--pre` for `pip install --pre`). Below the floor pip does not fail; it backtracks
+  to the last HA that supported that Python, and the job goes green having checked a
+  months-old API.
+- `[tool.mypy] python_version` tracks **HA's** floor, not the integration's: HA's
+  source uses syntax from its own minimum Python, and mypy targeting anything older
+  exits on a syntax error inside HA having checked nothing.
+- **A diagnostic step must never be able to fail the suite it precedes** — the
+  version-report steps in `ha-beta.yml` carry `continue-on-error: true`.
+- Anything resting on a Home Assistant framework contract (device registry, entity
+  registry, storage migration) needs an assertion in the Docker tier; a test that
+  fakes the framework cannot see the framework change underneath it.
+
+## API surface (`api_surface.py`)
+- Every integrator-facing surface is declared there: services, events and payload
+  spines, entity platforms and attributes, plus the internal websocket commands and
+  HTTP routes. Adding a surface anywhere without adding it there is drift.
+- The runtime **consumes** the model — `async_unload_entry` iterates `SERVICE_NAMES`
+  — so it cannot rot into documentation. `tests/unit/test_api_surface.py` parses the
+  component's own source with `ast` and fails when source and model disagree.
+- It holds **names and structure only**. Labels and descriptions are resolved from
+  `services.yaml` / `strings.json`, so the UI and any reference read from one string.
+  The exception is `EventSpec.summary`: a bus event has no HA string source.
+- `SURFACE_KINDS` is the ledger of the whole surface space. The rows marked
+  `not_applicable` are the point — listing only what you offer cannot tell you what
+  you forgot. Keep it light: it imports `const` and nothing else from the
+  integration, and nothing at all from Home Assistant.
 
 ## Typing (strict-typing — Platinum practice)
 - The integration is **fully typed** and ships

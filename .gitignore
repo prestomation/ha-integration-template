@@ -32,6 +32,10 @@ tests/integration/ha_config/tts/
 # walkthrough-preview.yml). Local runs still write here for debugging.
 docs/videos/
 
+# Vale style packages fetched by `vale sync` per .vale.ini. This is a synced
+# dependency, not source: vale-cli/vale-action fetches its own copy in CI.
+styles/
+
 # Mutation testing scratch (mutmut copies the project into mutants/; Stryker
 # sandboxes into .stryker-tmp/ and writes its report into reports/).
 mutants/

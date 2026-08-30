@@ -3,15 +3,20 @@
 @AGENTS.md
 
 The project's workflow, conventions, and **hard gates** live in `AGENTS.md`
-(imported above) and `.amazonq/rules/`. Read them before pushing.
+(imported above) and `.amazonq/rules/`. Read them before pushing. The README's
+**Guardrails** section is the short list of every automated check and what each one
+catches.
 
-Four gates worth repeating because they are easy to miss:
+Six gates worth repeating because they are easy to miss:
 
 1. **Every PR that touches the panel or card UI
    (`custom_components/example_integration/frontend/src/`) MUST include current
    screenshots** of the changed surface — captured with the Playwright harness,
    committed under `docs/images/`, and embedded in the PR body (SHA-pinned
-   `raw.githubusercontent.com` URL, HTML `<img>` tag). See AGENTS.md "Workflow".
+   `raw.githubusercontent.com` URL, HTML `<img>` tag). Look at every PNG before
+   committing it, and remember a screenshot is documentation, not verification: when
+   a capture adds a surface, add an assertion on it under `tests/e2e/tests/` too.
+   See AGENTS.md "Workflow".
 
 2. **Every PR that adds a _new user-facing UI feature_ should keep the video
    walkthrough current — but CI captures it; you never commit a video.**
@@ -35,3 +40,20 @@ Four gates worth repeating because they are easy to miss:
    mutant with a reason. Never lower the threshold to get green. The mutable
    surface is an allowlist: `only_mutate` in `[tool.mutmut]` and `mutate` in
    `stryker.conf.json`. See AGENTS.md "Mutation testing".
+
+5. **Never add a CHANGELOG entry to a section whose version is already released, and
+   never edit prose without expecting vale to read it.** `lint.yml`'s
+   `changelog-release-gap` job fails the first (the entry would never ship, because
+   `release.yml` skips a version it has already tagged); its `vale` job fails the
+   second, diff-scoped to the lines you touched. See AGENTS.md "Workflow".
+
+6. **A new integrator-facing surface is not done until `api_surface.py` declares it.**
+   Services, events and payloads, entity platforms and attributes, websocket commands,
+   HTTP routes. The runtime consumes the model (`async_unload_entry` iterates
+   `SERVICE_NAMES`) and `tests/unit/test_api_surface.py` parses the component source
+   and fails on drift. See AGENTS.md "Conventions".
+
+**Any CI job that installs Home Assistant** must run on a Python at or above HA's own
+floor and verify what pip actually resolved (`ci/check-ha-version.py`). Below that
+floor pip does not fail; it backtracks to a months-old HA and the job goes green
+having checked an API nobody runs. See AGENTS.md "Home Assistant versions".

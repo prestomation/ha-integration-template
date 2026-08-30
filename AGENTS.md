@@ -19,6 +19,36 @@ testable, and HACS-shippable.
 - **Always squash merge PRs.**
 - **CHANGELOG.md** — update for every user-facing change before tagging a release.
   Developer-only changes (CI config, AGENTS.md) don't need entries.
+  - **Never add an entry to a section whose version is already released.**
+    `release.yml` cuts a release by reading `manifest.json`'s version and tagging it,
+    and skips silently when that tag already exists. An entry folded into the current
+    top `## [X.Y.Z]` section without a version bump therefore merges clean and then
+    goes nowhere: nothing told `release.yml` there was anything new to publish. Bump
+    `manifest.json` + `const.py` (`PANEL_VERSION`) and open a new section instead.
+    `lint.yml`'s `changelog-release-gap` job (`ci/check-changelog-release-gap.py`)
+    fails the PR when it happens; folding into a section that is *not* yet tagged is
+    the normal workflow and stays allowed.
+- **User-facing prose is linted for AI-tell phrasing.** `lint.yml`'s `vale` job runs
+  the [vale-ai-tells](https://github.com/tbhb/vale-ai-tells) Vale style (pinned in
+  `.vale.ini`) over `README.md`, `CHANGELOG.md`, the `docs/*.md` pages, `strings.json`,
+  `services.yaml`, and the English frontend locale, catching things like "delve",
+  "it's important to note", em-dash overuse, and other AI-writing tells. **It's
+  diff-scoped** (`filter_mode: added`): only the lines a PR touches are checked, so
+  it's a real gate on new prose without failing on the existing backlog. Run it
+  locally with `vale sync && vale <paths>` (Vale CLI from
+  [github.com/errata-ai/vale releases](https://github.com/errata-ai/vale/releases)).
+  For an accepted false positive, either disable the rule for that file in `.vale.ini`
+  (`ai-tells.RuleName = NO`) or wrap the exception inline with
+  `<!-- vale ai-tells.RuleName = NO -->` / `<!-- vale ai-tells.RuleName = YES -->`.
+  **A clean local run is not proof CI is clean:** the action pins its own binary and
+  can report hits a locally-installed Vale misses. When a run matters, check the
+  rule's own regexes against the text (`styles/ai-tells/<Rule>.yml` is plain YAML
+  `tokens`), and match Vale's scope while you do — rules apply per **block**, so a
+  list item plus its continuation lines is one string and a pattern like `[^,]+`
+  happily spans sentence boundaries. In practice keep at most one comma in a bullet
+  after a modal (`can`, `could`, `will`) or a pronoun (`you`, `we`, `they`). A
+  wholesale rewrite of a file's prose can also surface pre-existing hits on lines that
+  merely moved, so run `vale <file>` over the whole file before that kind of PR.
 - **Always run tests locally before pushing.** Never use CI as the test runner.
   See "Tests" for the four tiers and exactly how to run each.
 - **Every PR that touches the panel or card UI MUST include screenshots — no
@@ -37,6 +67,15 @@ testable, and HACS-shippable.
     ambiguous for `raw.githubusercontent.com`). After editing the body, re-read it
     and verify each image URL returns HTTP 200. (In-repo README markdown with
     relative `docs/images/…` paths is fine — this only bites PR/issue bodies.)
+  - **Always visually inspect every captured screenshot before committing it.** Read
+    the PNG with the Read tool and look at the rendered image. Confirm the changed
+    surface is visible and correct: dialogs show their heading and buttons, lists are
+    populated, nothing is blank or clipped. If a screenshot looks wrong, diagnose the
+    root cause and fix it rather than committing it.
+  - **A screenshot is documentation, not verification — capturing a surface is not
+    covering it.** A capture renders whatever the UI does, including a bug, and
+    nothing fails because no test asserted on it. When a capture adds a surface, make
+    sure something in `tests/e2e/tests/` asserts on that surface in the same PR.
 - **Every PR that adds a _new user-facing UI feature_ SHOULD keep the video
   walkthrough current — but you don't capture or commit it; CI does.** Screenshots
   prove a surface *renders*; a short video proves the *interaction* works (the flow,
@@ -126,6 +165,18 @@ convention isn't real until it's written into the rules.
 - **Fire an event for every state change.** Built by a pure builder in `events.py`,
   fired at the `store.py` chokepoint, with a shared payload spine. A new event
   isn't done until it's in `docs/EVENTS.md`.
+- **Every integrator-facing surface is declared in `api_surface.py`.** Services,
+  events and their payloads, entity platforms and attributes, plus the internal
+  websocket commands and HTTP routes. It exists because those registries have no
+  reason to know about each other, so a surface can be added in one and forgotten in
+  the rest — registered but missing from the teardown list, renamed on one side of a
+  pair. The runtime *consumes* it (`async_unload_entry` iterates `SERVICE_NAMES`), and
+  `tests/unit/test_api_surface.py` parses the component's own source and fails on
+  drift. The model holds names and structure only: every label and description is
+  resolved from `services.yaml` / `strings.json`, so the Home Assistant UI and any
+  generated reference read from one string. `SURFACE_KINDS` is the ledger of the whole
+  surface space, and the rows that say `not_applicable` are the point — listing only
+  what you offer cannot tell you what you forgot.
 - Entity `unique_id`s are anchored to the item `id` (survive renames).
 - Escape all user content before `innerHTML` injection in the panel (`escapeHTML`).
 - Panel navigation is deep-linked: every destination maps to a URL under
@@ -168,6 +219,14 @@ surface.
   Docker integration tier **cannot share a pytest invocation**: the component CI
   step installs the harness; the integration CI step deliberately does **not**
   (and passes `-p no:pytest_socket`). Keep them in separate dirs and steps.
+- **The unit tier and the component tier cannot share one either**, for a second
+  reason that bites even in a single environment: `tests/unit/conftest.py` installs
+  stub `custom_components.example_integration` parent packages so the pure core loads
+  without Home Assistant. Collect both tiers in one pytest process and that stub is
+  in `sys.modules` when HA imports the integration for real, so every component test
+  dies with *"No setup or config entry setup function defined"* — HA found the stub.
+  Anything wanting both (the coverage job, say) runs two invocations and combines
+  with `--cov-append`.
 - The component tier needs HA + a built frontend package: `pip install
   pytest-homeassistant-custom-component home-assistant-frontend` (the latter
   provides `hass_frontend`, which the `frontend` dependency requires at setup).
@@ -177,6 +236,20 @@ surface.
   served pages (creating the entry at runtime is too late for the card). HA mutates
   that file at runtime; restore the committed fixture (`git checkout`) and don't
   commit the runtime version. Everything else under `.storage/` is gitignored.
+  `tests/unit/test_integration_fixture_clean.py` fails when a runtime-written key
+  reaches git, because that only breaks on a *pristine* checkout: the dirty fixture
+  keeps passing locally against the container that dirtied it.
+- **Anything resting on a Home Assistant framework contract** — device registry,
+  entity registry, device automation, storage migration — **needs an assertion in the
+  Docker tier.** The component tier mocks less than it used to, but a unit test that
+  fakes the framework cannot see the framework's contract change underneath it. HA
+  2026.8 split devices per config entry and broke device attachment across the
+  custom-integration ecosystem with no advance signal.
+- **Cross-version behaviour needs an upgrade test**, not just a fresh-boot test: boot
+  a frozen older HA against a seeded config dir, then boot the current one against
+  the same dir so HA runs its own migration in between. The fixtures are specific to
+  what your integration stores, so the template doesn't ship this tier. Add it (and a
+  job in `ha-beta.yml`) once your integration persists anything HA migrates.
 
 ## Mutation testing (a PR gate)
 
@@ -220,6 +293,14 @@ bash ci/test-mutation-frontend.sh --all
   `ci/test-frontend.sh` run still includes it.
 - Label a PR `skip-mutation` to bypass both jobs.
 
+- **A unit test that reads a repo file off disk needs that file in `also_copy`.**
+  mutmut runs the suite inside a `mutants/` copy holding only the source paths and
+  the tests, so a test that loads `ci/check-ha-version.py` by path, or reads the
+  seeded Docker fixture, dies at collection there. The trap is that it only breaks a
+  PR that *also* touches mutable Python — every other PR skips mutmut and never finds
+  out. List the file's **directory**: mutmut `copy2`s a bare file without creating
+  its parent, and only `copytree`s a directory into place.
+
 `tests/unit/conftest.py` executes the pure modules under their **real** dotted
 name (`custom_components.example_integration.<mod>`, with stub parent packages so
 the HA-importing `__init__.py` never runs) and aliases them to `ex.<mod>`. Keep
@@ -258,7 +339,9 @@ See `RELEASE.md`.
   custom_components/example_integration` with Home Assistant installed. Run it
   locally first: `pip install mypy homeassistant && mypy
   custom_components/example_integration`. User-facing exceptions are localized
-  (translation keys under `strings.json` → `exceptions`).
+  (translation keys under `strings.json` → `exceptions`). `[tool.mypy]
+  python_version` and the job's `python-version` both track Home Assistant's Python
+  floor rather than the integration's — see "Home Assistant versions" under CI.
 - The template demonstrates Platinum-tier practices but **does not stamp a
   `quality_scale` tier** in the manifest — the real tier depends on your domain
   after forking. See `.amazonq/rules/testing-and-workflow.md`.
@@ -272,15 +355,54 @@ See `RELEASE.md`.
 
 ## CI
 
-- `lint.yml` — ruff lint + format check, and **mypy** strict typing (HA installed).
+- `lint.yml` — ruff lint + format check; **mypy** strict typing with Home Assistant
+  installed (preceded by `ci/check-ha-version.py`, which fails the job if pip
+  resolved a stale HA); **vale** prose linting, diff-scoped; and
+  `changelog-release-gap`, which fails a PR editing an already-released CHANGELOG
+  section (`ci/check-changelog-release-gap.py`).
 - `test.yml` — vitest, pure pytest unit, **component (in-process HA)**, i18n
   coverage, HACS validation, hassfest.
 - `mutation.yml` — mutation testing (mutmut + Stryker) on the code a PR changed;
   fails below an 80% mutation score. `skip-mutation` label bypasses it.
 - `integration.yml` — Docker-based integration tests (no HA harness installed).
 - `e2e.yml` — Docker + Playwright; uploads the Playwright report on failure.
+- `pytest_coverage.yml` + `post_coverage_to_pr.yml` — coverage comment on PRs. Split
+  in two because the PR-triggered half runs the PR's own code and must not hold a
+  write token; the `workflow_run` half posts the comment from the base branch and
+  never checks the PR out.
+- `ha-beta.yml` — **nightly early warning**, gates nothing. Runs the Docker and
+  browser tiers against `HA_TAG=beta` plus mypy against a pre-release HA, and
+  files or updates a single `ha-beta-regression` issue on failure.
 - `walkthrough-preview.yml` — per-PR video walkthrough: captures the tour, publishes
   the gif/mp4 to `gh-pages`, posts a sticky comment embedding the gif inline (soft gate).
 - `hacs.yml` — HACS validation.
 - `release.yml` — PR-merge-driven release (version ↔ PANEL_VERSION ↔ CHANGELOG
   checks; builds the zip).
+- `dependabot-auto-merge.yml` — squash-merges a Dependabot PR once **every** check on
+  the head commit is green. Not `gh pr merge --auto`, which waits only on branch
+  protection's hand-maintained required-checks list: that list drifts out of sync with
+  the workflows' actual jobs, and a bump can merge while a job it doesn't name is
+  failing. Keep required status checks configured anyway, as defense in depth for
+  human merges.
+
+### Home Assistant versions
+
+- **PRs test `stable`** — what users actually run. The container version is `HA_TAG`
+  in `tests/integration/docker-compose.yml`, defaulting to `stable`; override it
+  locally with `HA_TAG=beta bash ci/e2e-up.sh`.
+- **A nightly tests `beta`.** HA beta week is public roughly four weeks ahead of a
+  release, so that is the warning window. HA 2026.8 split devices per config entry and
+  broke device attachment across the custom-integration ecosystem with no advance
+  signal, which is the kind of thing this exists to catch.
+- **Any job that `pip install`s Home Assistant must run on a Python at or above HA's
+  own floor, and must verify what pip actually resolved.** When the runner's Python is
+  too old, pip does not fail — it quietly backtracks to the last HA release that
+  supported that Python, and the job goes green having checked an API nobody runs. Run
+  `python ci/check-ha-version.py` (add `--pre` when installing with `pip install
+  --pre`) in every such job.
+- **`[tool.mypy] python_version` tracks HA's floor, not ours.** HA's source uses
+  syntax from its own minimum Python; target anything older and mypy cannot parse HA
+  at all — it exits on a syntax error having checked nothing.
+- **A diagnostic step must never be able to fail the suite it precedes.** The
+  version-report steps in `ha-beta.yml` carry `continue-on-error: true` for exactly
+  that reason.
