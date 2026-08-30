@@ -132,7 +132,7 @@ jobs:
         # `always()` would post the "capture failed" note for a run that was simply
         # cut short mid-flight; `!cancelled()` lets the newer run own the comment.
         if: ${{ !cancelled() }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
           EVENT_ACTION: ${{ github.event.action }}
