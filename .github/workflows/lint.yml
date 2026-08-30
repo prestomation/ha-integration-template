@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install ruff
@@ -30,7 +30,7 @@ jobs:
       # version, and the gate silently type-checks a months-old API. Keep this, and
       # `[tool.mypy] python_version`, tracking HA's floor rather than the
       # integration's. See ci/check-ha-version.py.
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
       # Install Home Assistant so its own types resolve — strict typing against the
@@ -75,7 +75,7 @@ jobs:
           # being iterated.
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Guard against editing an already-released CHANGELOG section
