@@ -140,7 +140,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.check.outputs.release == 'true' && steps.publish.outputs.publish == 'true'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: "v${{ steps.check.outputs.version }}"
           name: "v${{ steps.check.outputs.version }}"
@@ -196,6 +196,7 @@ jobs:
         env:
           DISPATCH_VERSION: ${{ inputs.notify_version }}
           RELEASE_VERSION: ${{ needs.release.outputs.version }}
+          RELEASE_PRERELEASE: ${{ needs.release.outputs.prerelease }}
         run: |
           VERSION="${DISPATCH_VERSION:-$RELEASE_VERSION}"
 
@@ -207,14 +208,24 @@ jobs:
           # word — VERSION arrives as an env var and every use below is quoted — so
           # this is about output forgery, not command injection.
           #
-          # prerelease is re-derived rather than taken from the release job so a dry
-          # run can target any past version without depending on that job's outputs.
+          # A real release takes prerelease from the release job, which published the
+          # GitHub release with that flag: one source of truth, so a beta can never
+          # close an issue. Only a dry run for another version derives it from that
+          # version, because the release job's outputs describe the current manifest.
           if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)[0-9]+$ ]]; then
-            PRERELEASE=true
+            DERIVED=true
           elif [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            PRERELEASE=false
+            DERIVED=false
           else
             echo "::error::version '$VERSION' is malformed — expected X.Y.Z or X.Y.Z{a|b|rc}N."
+            exit 1
+          fi
+          if [ -n "$DISPATCH_VERSION" ]; then
+            PRERELEASE="$DERIVED"
+          elif [ "$RELEASE_PRERELEASE" = "true" ] || [ "$RELEASE_PRERELEASE" = "false" ]; then
+            PRERELEASE="$RELEASE_PRERELEASE"
+          else
+            echo "::error::the release job gave no prerelease flag ('$RELEASE_PRERELEASE')."
             exit 1
           fi
 

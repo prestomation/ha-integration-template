@@ -82,3 +82,59 @@ def test_jobs_read_the_decision() -> None:
     )
     assert "needs.release.outputs.publish == 'true'" in jobs["deploy-docs"]["if"]
     assert "needs.release.outputs.publish == 'true'" in jobs["notify-issues"]["if"]
+
+
+def _target(tmp_path: Path, **env: str) -> tuple[int, str]:
+    """Run the notify-issues "Resolve the version" step with bash."""
+    job = _doc()["jobs"]["notify-issues"]
+    step = next(s for s in job["steps"] if s.get("id") == "target")
+    out = tmp_path / "out"
+    out.write_text("")
+    result = subprocess.run(
+        ["bash", "-c", step["run"]],
+        env={**os.environ, "GITHUB_OUTPUT": str(out), **env},
+        capture_output=True,
+        cwd=tmp_path,
+    )
+    return result.returncode, out.read_text()
+
+
+def test_a_release_notifies_with_the_release_jobs_own_prerelease(tmp_path) -> None:
+    # One source of truth: the release job published the GitHub release with this
+    # flag, so the issue notices follow it, even if a second regex would disagree.
+    for version, prerelease in (("0.2.0", "true"), ("0.2.0b1", "false")):
+        status, out = _target(
+            tmp_path,
+            DISPATCH_VERSION="",
+            RELEASE_VERSION=version,
+            RELEASE_PRERELEASE=prerelease,
+        )
+        assert status == 0
+        assert f"prerelease={prerelease}" in out.split()
+
+
+def test_a_release_without_a_prerelease_flag_notifies_nobody(tmp_path) -> None:
+    status, out = _target(
+        tmp_path, DISPATCH_VERSION="", RELEASE_VERSION="0.2.0", RELEASE_PRERELEASE=""
+    )
+    assert status == 1
+    assert "prerelease=" not in out
+
+
+def test_a_dry_run_derives_prerelease_from_its_own_version(tmp_path) -> None:
+    status, out = _target(
+        tmp_path,
+        DISPATCH_VERSION="0.1.0b2",
+        RELEASE_VERSION="0.3.0",
+        RELEASE_PRERELEASE="false",
+    )
+    assert status == 0
+    assert {"version=0.1.0b2", "prerelease=true"} <= set(out.split())
+
+
+def test_an_empty_version_notifies_nobody(tmp_path) -> None:
+    status, out = _target(
+        tmp_path, DISPATCH_VERSION="", RELEASE_VERSION="", RELEASE_PRERELEASE=""
+    )
+    assert status == 1
+    assert out == ""
