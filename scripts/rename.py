@@ -37,6 +37,9 @@ It also renames `custom_components/example_integration/` and the
 It leaves itself alone: this script keeps the template placeholders, so it still
 reads as a record of what it replaced.
 
+It exits 1 when a step is left to do by hand (no ruff, unstamped docs, lines
+that are too long, or a docs-check problem), and 0 when the rename is complete.
+
 After running: review `git diff`, then run the tests (see README). The script
 does not touch the synthetic `ex` test package name in `tests/unit/conftest.py`
 (internal plumbing that works regardless of domain).
@@ -80,8 +83,9 @@ SKIP_DIRS = {
 SKIP_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2", ".zip"}
 # The built bundles are gitignored/derived; never rewrite them.
 SKIP_NAMES = {"example-panel.js", "example-card.js"}
-# This script keeps the placeholders it replaces.
-SKIP_PATHS = {Path("scripts") / "rename.py"}
+# This script keeps the placeholders it replaces. The path follows the script, so
+# a fork that moves it keeps the skip.
+SKIP_PATHS = {Path(__file__).resolve().relative_to(ROOT)}
 
 
 def _pascal(display: str) -> str:
@@ -134,6 +138,18 @@ def apply_to_text(text: str, replacements: list[tuple[str, str]]) -> str:
     for pattern, repl in replacements:
         text = re.sub(pattern, repl.replace("\\", r"\\"), text)
     return text
+
+
+def exit_status(
+    *, stamped: bool, formatted: bool, too_long: list[str], doc_problems: list[str]
+) -> int:
+    """0 when the rename is complete, 1 when a step is left to do by hand.
+
+    The rewrite and the directory renames are done either way. A non-zero status
+    tells a caller (a script, CI, an agent) that the result does not pass the gates
+    yet: the design docs are not stamped, ruff did not run, or lines are too long.
+    """
+    return 0 if stamped and formatted and not too_long and not doc_problems else 1
 
 
 def main() -> int:
@@ -265,8 +281,17 @@ def main() -> int:
         print("These lines are now too long. Wrap them by hand:")
         for line in too_long:
             print(f"  {line}")
-    print("Next: review `git diff`, then run the tests (see README).")
-    return 0
+    status = exit_status(
+        stamped=stamped,
+        formatted=formatted,
+        too_long=too_long,
+        doc_problems=doc_problems,
+    )
+    if status:
+        print("The rename is not complete. Do the steps above, then run the tests.")
+    else:
+        print("Next: review `git diff`, then run the tests (see README).")
+    return status
 
 
 if __name__ == "__main__":
