@@ -108,7 +108,7 @@ jobs:
             } catch (e) { if (e.status !== 404 && e.status !== 422) throw e; }
 
       - name: Publish ephemeral pre-release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           target_commitish: ${{ github.event.pull_request.head.sha }}

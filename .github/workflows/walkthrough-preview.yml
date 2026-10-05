@@ -177,7 +177,7 @@ jobs:
       # umbrella from the docs preview so the two don't fight over pr-<n>/.
       - name: Publish / remove preview
         if: github.event.action == 'closed' || needs.walkthrough.outputs.capture == 'success'
-        uses: rossjrw/pr-preview-action@v1
+        uses: rossjrw/pr-preview-action@ffa7509e91a3ec8dfc2e5536c4d5c1acdf7a6de9 # v1
         with:
           source-dir: ./_walkthrough_out
           preview-branch: gh-pages
