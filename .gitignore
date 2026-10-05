@@ -46,3 +46,4 @@ reports/
 
 # Build artifacts
 example_integration.zip
+.setup-ci-deps.lock/

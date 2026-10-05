@@ -69,6 +69,13 @@ break = 80
 # inside HA and reports nothing about our code, so this silently stops being a gate.
 # Keep it in step with the mypy job's `python-version` in lint.yml.
 python_version = "3.14"
+# Home Assistant 2026.9 and later alias `voluptuous` to probatio at run time, and
+# 2026.10 types its schema arguments with probatio classes. hass-nabucasa still
+# installs the real voluptuous, so mypy can read `import voluptuous as vol` as a
+# different class and reject each schema that the integration passes in. The stubs
+# in `typings/` point `voluptuous` at probatio for mypy only, as Home Assistant
+# core's `stubs/voluptuous` does. Remove them when the code imports probatio.
+mypy_path = "typings"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true

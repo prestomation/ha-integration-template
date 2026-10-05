@@ -37,7 +37,7 @@ mkdir -p "$VIDEO_DIR"
 echo "[capture-video] recording walkthrough (Playwright)..."
 ( cd tests/e2e
   if [ ! -d node_modules ]; then npm ci 2>/dev/null || npm install --no-audit --no-fund; fi
-  VIDEO_DIR="$VIDEO_DIR" npx playwright test --config=videos.config.ts )
+  VIDEO_DIR="$VIDEO_DIR" npx playwright test --config=walkthrough.config.ts )
 
 WEBM="$VIDEO_DIR/walkthrough.webm"
 MP4="$VIDEO_DIR/walkthrough.mp4"

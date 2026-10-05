@@ -1,0 +1,14 @@
+# What every mypy lane installs. lint.yml (the gate on each PR), ha-beta.yml (the
+# nightly against a pre-release Home Assistant) and ci/setup-ci-deps.sh (the local
+# .venv) all read this file. Name a new dependency here, never in one workflow: the
+# nightly lane runs on a schedule, so a list that drifts there stays green through
+# every PR and goes red on main.
+#
+# Entries come in two kinds. A package the integration imports goes in so its own
+# types resolve, which works when the package ships them (a py.typed marker). One
+# that ships none needs its stub distribution instead, named `types-<package>`, or
+# mypy stops on `Library stubs not installed`.
+mypy
+# Home Assistant itself. Strict typing against the real Home Assistant API is a
+# Platinum quality-scale practice.
+homeassistant
