@@ -34,7 +34,10 @@ source_paths = ["custom_components/example_integration"]
 # also touches mutable Python — every other PR skips mutmut entirely and never finds
 # out. Directories, not bare files: mutmut `copy2`s a file without creating its
 # parent, and only `copytree`s a directory into place.
-also_copy = ["ci", "tests/integration/ha_config"]
+# `test_release_issues.py` reads CHANGELOG.md at *import* time (its parametrize
+# enumerates the released versions), and `test_ci_release_publish_gate.py` reads
+# `.github/workflows/release.yml` to run the release workflow's publish decision.
+also_copy = ["ci", "tests/integration/ha_config", "CHANGELOG.md", ".github/workflows"]
 # The mutable surface: the pure core, which the fast `tests/unit` tier covers
 # directly. Everything else in the integration imports Home Assistant and is
 # only exercised by the component and Docker tiers — far too slow to run once
