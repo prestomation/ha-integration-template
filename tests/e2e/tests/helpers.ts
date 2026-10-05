@@ -60,3 +60,12 @@ export async function addItem(page: Page, name: string, value: number): Promise<
   await panel.locator('#ex-item-form #ex-save').click();
   await expect(panel.locator('.ex-name', { hasText: name }).first()).toBeVisible();
 }
+
+/**
+ * Wait until the Home Assistant startup toast ("Not everything will be available
+ * until startup is finished") is gone. A capture taken on a cold container shows it
+ * over the page.
+ */
+export async function waitForStartupToast(page: Page): Promise<void> {
+  await expect(page.getByText('until startup is finished')).toHaveCount(0, { timeout: 60_000 });
+}
