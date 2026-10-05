@@ -2,22 +2,22 @@
 
 [Full report](https://htmlpreview.github.io/?https://github.com/prestomation/ha-integration-template/blob/python-coverage-comment-action-data/htmlcov/index.html)
 
-| Name                                                      |    Stmts |     Miss |   Cover |   Missing |
-|---------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| custom\_components/example\_integration/\_\_init\_\_.py   |       74 |        5 |     93% |99, 128-129, 140-141 |
-| custom\_components/example\_integration/api\_surface.py   |       78 |        0 |    100% |           |
-| custom\_components/example\_integration/card.py           |       15 |        1 |     93% |        33 |
-| custom\_components/example\_integration/config\_flow.py   |       12 |        0 |    100% |           |
-| custom\_components/example\_integration/const.py          |       18 |        0 |    100% |           |
-| custom\_components/example\_integration/coordinator.py    |       16 |        0 |    100% |           |
-| custom\_components/example\_integration/diagnostics.py    |        8 |        2 |     75% |     23-24 |
-| custom\_components/example\_integration/events.py         |       10 |        0 |    100% |           |
-| custom\_components/example\_integration/models.py         |       36 |        0 |    100% |           |
-| custom\_components/example\_integration/panel.py          |       19 |        3 |     84% | 39-41, 45 |
-| custom\_components/example\_integration/sensor.py         |       65 |        0 |    100% |           |
-| custom\_components/example\_integration/store.py          |       49 |        3 |     94% |46, 61, 83 |
-| custom\_components/example\_integration/websocket\_api.py |       72 |       13 |     82% |29, 70-71, 98-99, 103-108, 125-126 |
-| **TOTAL**                                                 |  **472** |   **27** | **94%** |           |
+| Name                                                      |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
+|---------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
+| custom\_components/example\_integration/\_\_init\_\_.py   |       74 |        5 |        8 |        3 |     90% |76-\>83, 97-\>95, 99, 128-129, 140-141 |
+| custom\_components/example\_integration/api\_surface.py   |       78 |        0 |        0 |        0 |    100% |           |
+| custom\_components/example\_integration/card.py           |       15 |        1 |        2 |        1 |     88% |        33 |
+| custom\_components/example\_integration/config\_flow.py   |       12 |        0 |        2 |        0 |    100% |           |
+| custom\_components/example\_integration/const.py          |       18 |        0 |        0 |        0 |    100% |           |
+| custom\_components/example\_integration/coordinator.py    |       16 |        0 |        0 |        0 |    100% |           |
+| custom\_components/example\_integration/diagnostics.py    |        8 |        2 |        0 |        0 |     75% |     23-24 |
+| custom\_components/example\_integration/events.py         |       10 |        0 |        0 |        0 |    100% |           |
+| custom\_components/example\_integration/models.py         |       36 |        0 |       16 |        0 |    100% |           |
+| custom\_components/example\_integration/panel.py          |       19 |        3 |        2 |        1 |     81% | 39-41, 45 |
+| custom\_components/example\_integration/sensor.py         |       65 |        0 |        6 |        1 |     99% | 111-\>110 |
+| custom\_components/example\_integration/store.py          |       49 |        3 |        4 |        2 |     91% |46, 61, 83 |
+| custom\_components/example\_integration/websocket\_api.py |       72 |       13 |       10 |        5 |     78% |27-\>25, 29, 70-71, 98-99, 103-108, 125-126 |
+| **TOTAL**                                                 |  **472** |   **27** |   **50** |   **13** | **92%** |           |
 
 
 ## Setup coverage badge
