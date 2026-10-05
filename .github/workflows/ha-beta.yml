@@ -38,6 +38,10 @@ on:
 env:
   HA_TAG: ${{ github.event.inputs.ha_tag || 'beta' }}
 
+# A job that needs more asks for it in its own permissions block.
+permissions:
+  contents: read
+
 jobs:
   integration:
     name: Integration (HA ${{ github.event.inputs.ha_tag || 'beta' }})

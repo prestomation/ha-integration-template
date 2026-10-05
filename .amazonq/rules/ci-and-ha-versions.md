@@ -34,6 +34,9 @@ summary: What each CI workflow gates, the mutation and typing gates, vale, and h
 - **A job that runs PR code holds a read-only token.** A workflow that must write splits
   into a build job and a publish job that runs no PR code (`walkthrough-preview.yml`,
   `docs-preview.yml`). A Dependabot PR is a same-repo PR and gets the write token.
+- **Each workflow sets `permissions: contents: read` at the top.** A job that needs more
+  asks for it in its own block. A job with no block gets the repository default token,
+  so `test_ci_action_pins.py` counts it as a write job and requires pinned actions.
 - `pytest_coverage.yml` runs the PR's code with no write token. `post_coverage_to_pr.yml`
   runs from the base branch on `workflow_run` and never checks the PR out.
 - `dependabot-auto-merge.yml` waits through `ci/wait_for_checks.py` for every check on

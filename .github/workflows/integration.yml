@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# A job that needs more asks for it in its own permissions block.
+permissions:
+  contents: read
+
 jobs:
   integration:
     runs-on: ubuntu-latest

@@ -38,7 +38,19 @@ def _bad_imports(source: str, pure: set[str]) -> list[str]:
                     found.append(f".{module}")
             else:  # `from . import const`
                 found += [f".{a.name}" for a in node.names if a.name not in pure]
+        elif isinstance(node, ast.Call) and _is_dynamic_import(node.func):
+            # `importlib.import_module("homeassistant.core")` or `__import__(...)`.
+            arg = node.args[0] if node.args else None
+            name = arg.value if isinstance(arg, ast.Constant) else None
+            if not isinstance(name, str) or name.startswith("homeassistant"):
+                found.append(f"dynamic import of {name!r}")
     return found
+
+
+def _is_dynamic_import(func: ast.expr) -> bool:
+    if isinstance(func, ast.Name):
+        return func.id in {"__import__", "import_module"}
+    return isinstance(func, ast.Attribute) and func.attr == "import_module"
 
 
 @pytest.mark.parametrize("name", conftest._PURE_MODULES)
@@ -81,3 +93,18 @@ def test_the_mutation_gate_is_the_same_for_both_languages() -> None:
     stryker = json.loads((_ROOT / "stryker.conf.json").read_text(encoding="utf-8"))
     python_gate = pyproject["tool"]["mutation-gate"]["break"]
     assert stryker["thresholds"]["break"] == python_gate
+
+
+def test_the_check_sees_a_dynamic_import() -> None:
+    source = (
+        "import importlib\n"
+        "importlib.import_module('homeassistant.core')\n"
+        "__import__('homeassistant')\n"
+        "importlib.import_module(name)\n"
+        "importlib.import_module('json')\n"
+    )
+    assert _bad_imports(source, set()) == [
+        "dynamic import of 'homeassistant.core'",
+        "dynamic import of 'homeassistant'",
+        "dynamic import of None",
+    ]

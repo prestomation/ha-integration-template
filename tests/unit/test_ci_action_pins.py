@@ -1,8 +1,10 @@
 """A third-party action in a job that holds a write token is pinned to a commit.
 
-A tag such as ``@v1`` can move. Whoever controls the action's repository can point
-it at new code, and that code then runs with the job's write token. A commit SHA
-cannot move. ``actions/*`` (GitHub's own) and local ``./`` workflows are exempt.
+A job with no ``permissions`` block counts as a write job, because it gets the
+repository default token. A tag such as ``@v1`` can move. Whoever controls the
+action's repository can point it at new code, and that code then runs with the
+job's write token. A commit SHA cannot move. ``actions/*`` (GitHub's own) and
+local ``./`` workflows are exempt.
 """
 
 from __future__ import annotations
@@ -18,7 +20,9 @@ _PINNED = re.compile(r"^[^@]+@[0-9a-f]{40}$")
 
 
 def _writes(permissions: object) -> bool:
-    if permissions == "write-all":
+    # No permissions block means the repository default token, which can write.
+    # A reusable workflow with no block takes the caller's token, which can too.
+    if permissions is None or permissions == "write-all":
         return True
     return isinstance(permissions, dict) and "write" in permissions.values()
 
@@ -60,3 +64,11 @@ def test_the_check_sees_an_unpinned_action(tmp_path: Path) -> None:
         "    steps:\n      - uses: someone/other@v2\n"
     )
     assert _unpinned(workflow) == ["w.yml publish: someone/action@v1"]
+
+
+def test_a_job_with_no_permissions_block_counts_as_a_write_job() -> None:
+    assert _writes(None)
+    assert _writes("write-all")
+    assert _writes({"contents": "read", "issues": "write"})
+    assert not _writes({"contents": "read"})
+    assert not _writes("read-all")
