@@ -116,7 +116,7 @@ class WebsocketSpec:
     """A panel websocket command.
 
     Internal: a UI-latency optimization over the equivalent service, never a
-    substitute for it (see ``.amazonq/rules/architecture-and-code.md``). Modelled
+    substitute for it (see ``.amazonq/rules/services-and-events.md``). Modelled
     and tested so it can't drift, and so the pairing with its service is visible.
     """
 

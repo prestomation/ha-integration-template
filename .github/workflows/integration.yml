@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# A job that needs more asks for it in its own permissions block.
+permissions:
+  contents: read
+
 jobs:
   integration:
     runs-on: ubuntu-latest
@@ -14,7 +18,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 

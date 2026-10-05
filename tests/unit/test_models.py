@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
+from asserts import raises_exactly
 from ex.const import MAX_NAME_LENGTH, MAX_VALUE, MIN_VALUE
 from ex.models import (
     EDITABLE_FIELDS,
@@ -37,16 +36,8 @@ def test_build_item_strips_name():
     assert item["name"] == "Shelf"
 
 
-# Each rejection is asserted with its message, not just "something was raised".
-# The messages are contract, not decoration: the service handlers surface them
-# verbatim as the ServiceValidationError a user reads. `exactly()` anchors the
-# pattern, because pytest's `match=` is a *search* — an unanchored pattern passes
-# happily on a message with junk bolted onto either end.
-def exactly(message: str) -> str:
-    """A `pytest.raises(match=...)` pattern that must match the whole message."""
-    return f"^{re.escape(message)}$"
-
-
+# Each rejection is asserted with its whole message (see asserts.raises_exactly):
+# the service handlers show the messages to the user verbatim.
 @pytest.mark.parametrize(
     ("bad", "message"),
     [
@@ -57,14 +48,14 @@ def exactly(message: str) -> str:
     ],
 )
 def test_build_item_rejects_bad_name(bad, message):
-    with pytest.raises(ItemValidationError, match=exactly(message)):
+    with raises_exactly(ItemValidationError, message):
         build_item({"name": bad}, created="t")
 
 
 # bool is an int subclass, so True/False have to be rejected explicitly.
 @pytest.mark.parametrize("bad", [True, False, "3", 1.5, None])
 def test_build_item_rejects_non_int_value(bad):
-    with pytest.raises(ItemValidationError, match=exactly("value must be an integer")):
+    with raises_exactly(ItemValidationError, "value must be an integer"):
         build_item({"name": "x", "value": bad}, created="t")
 
 
@@ -80,9 +71,8 @@ def test_name_at_the_length_limit_is_accepted():
 
 
 def test_name_one_over_the_length_limit_is_rejected():
-    with pytest.raises(
-        ItemValidationError,
-        match=exactly(f"name must be at most {MAX_NAME_LENGTH} characters"),
+    with raises_exactly(
+        ItemValidationError, f"name must be at most {MAX_NAME_LENGTH} characters"
     ):
         build_item({"name": "n" * (MAX_NAME_LENGTH + 1)}, created="t")
 
@@ -102,9 +92,8 @@ def test_value_at_the_limits_is_accepted(value):
 
 @pytest.mark.parametrize("value", [MIN_VALUE - 1, MAX_VALUE + 1])
 def test_value_outside_the_limits_is_rejected(value):
-    with pytest.raises(
-        ItemValidationError,
-        match=exactly(f"value must be between {MIN_VALUE} and {MAX_VALUE}"),
+    with raises_exactly(
+        ItemValidationError, f"value must be between {MIN_VALUE} and {MAX_VALUE}"
     ):
         build_item({"name": "x", "value": value}, created="t")
 

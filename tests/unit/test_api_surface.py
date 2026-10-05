@@ -45,12 +45,11 @@ _STRINGS = json.loads((_COMPONENT / "strings.json").read_text(encoding="utf-8"))
 def _services_yaml() -> dict:
     """``services.yaml``, parsed.
 
-    PyYAML is the one dependency beyond ``pytest`` this tier wants, and the README
-    promises `pip install pytest` is enough — so the two checks that read
-    ``services.yaml`` skip without it and the other two dozen still run. CI installs
-    it via ``requirements-test.txt``, so the skip never happens there.
+    PyYAML is in ``requirements-test.txt``. A missing one is a broken environment,
+    so the import fails the run rather than skipping the gate.
     """
-    yaml = pytest.importorskip("yaml", reason="PyYAML not installed")
+    import yaml
+
     return yaml.safe_load((_COMPONENT / "services.yaml").read_text(encoding="utf-8"))
 
 

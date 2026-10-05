@@ -48,7 +48,7 @@ jobs:
           # ci/mutation_scope.py needs the base branch to diff against.
           fetch-depth: 0
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install dependencies
@@ -79,7 +79,7 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Set up Python
         # Only for ci/mutation_scope.py and ci/mutation_report.py.
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install dependencies

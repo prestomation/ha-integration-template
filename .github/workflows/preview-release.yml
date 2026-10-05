@@ -10,9 +10,6 @@ name: Preview release (PR build)
 # `preview-release` GitHub Environment, so the repo owner can require an explicit
 # approval there (Settings → Environments → preview-release → Required reviewers).
 # The pre-release is re-published on each push and **deleted when the PR closes**.
-#
-# When you rename the template (scripts/rename.py), update this file: replace
-# `example_integration` with your domain and `Example Integration` with your display name.
 
 on:
   pull_request:
@@ -93,7 +90,7 @@ jobs:
           echo "example_integration.zip exists ($(du -h example_integration.zip | cut -f1))"
 
       - name: Replace any previous preview release for this PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           TAG: ${{ steps.ver.outputs.tag }}
         with:
@@ -111,7 +108,7 @@ jobs:
             } catch (e) { if (e.status !== 404 && e.status !== 422) throw e; }
 
       - name: Publish ephemeral pre-release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           target_commitish: ${{ github.event.pull_request.head.sha }}
@@ -126,7 +123,7 @@ jobs:
           files: example_integration.zip
 
       - name: Sticky comment with install instructions
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           VERSION: ${{ steps.ver.outputs.version }}
           TAG: ${{ steps.ver.outputs.tag }}
@@ -165,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete this PR's preview release + tag
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PR: ${{ github.event.number }}
         with:

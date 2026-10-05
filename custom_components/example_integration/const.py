@@ -7,9 +7,8 @@ tiny — the point of this repo is the *scaffolding and patterns* around it
 Lovelace card, translations, and the test/CI/agentic-rules harness), not the
 feature itself.
 
-To adapt this template, find-and-replace ``example_integration`` /
-``Example Integration`` / ``example-`` throughout, then replace the items model
-with your own.
+To adapt this template, run ``scripts/rename.py``, which rewrites the
+placeholders throughout. Then replace the items model with your own.
 """
 
 DOMAIN = "example_integration"

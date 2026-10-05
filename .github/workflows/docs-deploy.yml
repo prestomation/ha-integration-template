@@ -1,0 +1,89 @@
+name: Docs site — deploy
+
+on:
+  # Called by release.yml after a *stable* release is cut. We can't use the
+  # `release: [released]` event here: that release is created by release.yml
+  # with the default GITHUB_TOKEN, and events triggered by GITHUB_TOKEN never
+  # start a new workflow run (GitHub's anti-recursion safeguard) — so the event
+  # would silently never fire. A workflow_call runs inside the same triggering
+  # run, sidestepping that restriction. `ref` is the tag to build docs from, so
+  # the live site stays pinned to the released commit (not main HEAD).
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (release tag) to build the docs from.
+        required: false
+        type: string
+  # Manual deploys: emergency fixes, or the one-time recovery of a release that
+  # shipped before this pipeline was wired up. Pass `ref` (e.g. v0.7.0) to pin
+  # to a tag; omit it to build from the default branch HEAD.
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (release tag) to build the docs from. Defaults to the branch HEAD.
+        required: false
+        type: string
+
+# Production publishes to the root of the gh-pages branch. PR previews live under
+# pr-preview/ (docs) and pr-preview-media/ (walkthrough videos) on the same branch,
+# so clean-exclude keeps them from being wiped.
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Build from the release tag passed by the caller (workflow_call) or by
+          # a manual dispatch. Falls back to the default branch HEAD when no ref
+          # is given (plain workflow_dispatch).
+          ref: ${{ inputs.ref || github.ref }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      # `npm run sync` renders the API reference with ci/generate_api_docs.py before
+      # Docusaurus builds. It reads api_surface.py, services.yaml and strings.json,
+      # and needs only PyYAML: no Home Assistant.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install
+        working-directory: website
+        run: |
+          pip install PyYAML
+          npm ci
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(python3 -c "import json; print(json.load(open('custom_components/example_integration/manifest.json'))['version'])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        working-directory: website
+        env:
+          # The site lives under /<repo>/, so a fork needs no edit here.
+          DOCS_BASE_URL: /${{ github.event.repository.name }}/
+          DOCS_VERSION: ${{ steps.version.outputs.version }}
+        run: npm run build
+
+      - name: Deploy to gh-pages
+        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4
+        with:
+          branch: gh-pages
+          folder: website/build
+          clean: true
+          clean-exclude: |
+            pr-preview/
+            pr-preview-media/

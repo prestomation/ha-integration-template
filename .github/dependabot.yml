@@ -27,6 +27,14 @@ updates:
     schedule:
       interval: weekly
     labels: ["dependencies"]
+    ignore:
+      # The root vitest is the one Stryker drives. @stryker-mutator/vitest-runner
+      # 10.0.0 runs no test per mutant under vitest 5, so every mutant survives and
+      # the TypeScript mutation gate reads 0%. A dependency-only PR changes no
+      # TypeScript, so only the toolchain smoke run in ci/test-mutation-frontend.sh
+      # can see it. Remove this rule when a Stryker vitest runner supports vitest 5.
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
 
   # Playwright e2e deps.
   - package-ecosystem: npm

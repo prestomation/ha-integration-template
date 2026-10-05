@@ -3,3 +3,4 @@
 package-lock.json linguist-generated=true
 custom_components/example_integration/frontend/package-lock.json linguist-generated=true
 tests/e2e/package-lock.json linguist-generated=true
+website/package-lock.json linguist-generated=true

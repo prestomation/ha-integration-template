@@ -4,7 +4,7 @@ The model, the event-payload builders and the API-surface index are pure Python
 (they import nothing from
 Home Assistant), so we load them in isolation here under a synthetic ``ex``
 package. This lets the high-value core tests run without the full HA test
-harness (``pip install pytest`` is enough) while still pointing coverage at the
+harness (``pip install pytest PyYAML`` is enough) while still pointing coverage at the
 real source files in ``custom_components/example_integration``.
 
 The modules are *executed* under their real dotted name

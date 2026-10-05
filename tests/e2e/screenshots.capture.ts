@@ -3,10 +3,12 @@
  *
  * Run via `screenshots.config.ts` against a running HA (see ci/e2e-up.sh with
  * KEEP_UP=1). Writes PNGs to ../../docs/images/. Add a capture block here in the
- * same PR whenever you add or change a UI surface.
+ * same PR whenever you add or change a UI surface: a desktop step above, and a phone
+ * step in the `setViewportSize(PHONE)` block below, with a `-mobile-` name.
  */
 import { test } from '@playwright/test';
-import { addItem, openCard, openPanel } from './tests/helpers';
+import { addItem, openCard, openPanel, waitForStartupToast } from './tests/helpers';
+import { PHONE } from './viewports';
 
 const OUT = '../../docs/images';
 
@@ -32,4 +34,21 @@ test('capture: panel item detail', async ({ page }) => {
 test('capture: dashboard card', async ({ page }) => {
   const card = await openCard(page);
   await card.locator('ha-card').first().screenshot({ path: `${OUT}/card.png` });
+});
+
+// Phone width. Every changed surface needs a desktop shot and a phone shot.
+test('capture: phone width', async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await openPanel(page);
+  await waitForStartupToast(page);
+  const panel = page.locator('example-panel').first();
+  await panel.locator('.ex-row').first().waitFor();
+  await page.screenshot({ path: `${OUT}/panel-mobile-list.png`, fullPage: false });
+
+  await panel.locator('.detail-open').first().click();
+  await panel.locator('#back-btn').waitFor();
+  await page.screenshot({ path: `${OUT}/panel-mobile-detail.png`, fullPage: false });
+
+  const card = await openCard(page);
+  await card.locator('ha-card').first().screenshot({ path: `${OUT}/card-mobile-list.png` });
 });

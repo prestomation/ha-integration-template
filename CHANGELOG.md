@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this project are documented here. The format is based on
+All changes to this project that a user can see are in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `manifest.json` `version`
 is the single source of truth (see `RELEASE.md`).
@@ -8,6 +8,15 @@ is the single source of truth (see `RELEASE.md`).
 ## [Unreleased]
 
 ### Added
+- **[Design docs and docs gate](https://prestomation.github.io/ha-integration-template/developer/architecture).**
+  Each subsystem has a design doc in `docs/design/`, and the `docs-audit` check fails a
+  PR when the code no longer matches its doc. The agent rules are short files by topic in
+  `.amazonq/rules/`, and all English text follows ASD-STE100.
+- **[Documentation site](https://prestomation.github.io/ha-integration-template/docs/intro).**
+  A Docusaurus site shows the user guide from `docs/guide/` and an API reference made
+  from `api_surface.py`, with a preview for each PR.
+- **Release issue notices.** A release comments on each issue that its CHANGELOG section
+  fixes, and a stable release also closes the issue.
 - **A full set of guardrails, ported from a production integration built on this
   template.** New PR checks cover prose linting, a stale-Home-Assistant resolve, an
   already-released CHANGELOG section, coverage reporting, seeded-fixture hygiene, and
@@ -25,11 +34,17 @@ is the single source of truth (see `RELEASE.md`).
   these patterns without stamping a `quality_scale` tier in the manifest (that's
   left to the integration you build on top of it).
 
+### Fixed
+- **HACS release zip.** HACS installs the release zip, so an install has the built panel
+  and card bundles.
+- **TypeScript mutation gate.** Stryker runs the tests against each mutant again, so the
+  score measures the tests.
+
 ## [0.1.0]
 
 ### Added
-- Initial template: the **Example Integration** (`example_integration`) — a managed
-  **items list** demonstrating the full stack:
+- Initial template: the **Example Integration** (`example_integration`), a managed
+  **items list** that shows the full stack:
   - Pure, HA-free core (`models.py`, `events.py`) unit-tested in isolation.
   - `ExampleStore` single mutation chokepoint persisting to
     `.storage/example_integration` and firing `item_created/updated/deleted` events.

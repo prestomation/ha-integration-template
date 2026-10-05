@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { addItem, openCard, openPanel, trackPanelErrors } from './helpers';
+import { PHONE } from '../viewports';
 
 test.describe('Example Integration panel — smoke', () => {
   test('panel renders with title, add button, and no errors', async ({ page }) => {
@@ -45,5 +46,29 @@ test.describe('Example Integration — dashboard card', () => {
   test('the custom card renders on the dashboard', async ({ page }) => {
     const card = await openCard(page);
     await expect(card.locator('ha-card').first()).toBeVisible();
+  });
+});
+
+test.describe('Example Integration — phone width', () => {
+  test.use({ viewport: PHONE });
+
+  test('the panel toolbar and the list fit inside the phone viewport', async ({ page }) => {
+    await openPanel(page);
+    await addItem(page, 'Phone row', 3);
+    const panel = page.locator('example-panel').first();
+    const add = await panel.locator('#add-btn').boundingBox();
+    const row = await panel.locator('.ex-row', { hasText: 'Phone row' }).first().boundingBox();
+    expect(add, 'the add button renders').not.toBeNull();
+    expect(row, 'the new row renders').not.toBeNull();
+    // The right edge of each control is inside the viewport: nothing needs a sideways scroll.
+    expect(add!.x + add!.width).toBeLessThanOrEqual(PHONE.width);
+    expect(row!.x + row!.width).toBeLessThanOrEqual(PHONE.width);
+  });
+
+  test('the card renders inside the phone viewport', async ({ page }) => {
+    const card = await openCard(page);
+    const box = await card.locator('ha-card').first().boundingBox();
+    expect(box, 'the card renders').not.toBeNull();
+    expect(box!.x + box!.width).toBeLessThanOrEqual(PHONE.width);
   });
 });

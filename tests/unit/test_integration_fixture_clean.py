@@ -68,7 +68,7 @@ SEEDED_ENTRY_KEYS = {
 #: `- type: custom:example-card` in the seeded YAML dashboard.
 _YAML_CUSTOM_CARD = re.compile(r"type:\s*custom:([\w-]+)")
 
-#: `customElements.define('example-card', …)` in the card bundle's entry point.
+#: `customElements.define('example-card', …)` in the card bundle's entry.
 _DEFINED_ELEMENT = re.compile(r"customElements\.define\(\s*['\"]([\w-]+)['\"]")
 
 

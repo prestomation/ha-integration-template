@@ -1,10 +1,9 @@
-# Services for the Example Integration. Every data action is exposed as a
-# service (the interoperability surface for automations, scripts, voice, and
-# other integrations). The panel's websocket commands delegate to the same
-# store methods — services are never a second-class path.
+# Services for the Example Integration. Each data action is a service: the
+# contract for automations, scripts, voice assistants and other integrations.
+# The websocket commands of the panel call the same store methods.
 #
-# Each entry here MUST have a matching block under "services" in strings.json
-# (and every translations/<lang>.json) — hassfest and the translation-parity
+# Each entry here must have a matching block under "services" in strings.json
+# and in every translations/<lang>.json. hassfest and the translation-parity
 # test enforce the pairing.
 
 add_item:

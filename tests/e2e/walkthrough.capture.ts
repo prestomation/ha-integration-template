@@ -1,7 +1,7 @@
 /**
  * One-off **video** walkthrough capture for the per-PR preview — not part of the
  * e2e suite (the filename does not match *.spec.ts, and it's only run via
- * videos.config.ts). It records a short end-to-end tour of the Example Integration
+ * walkthrough.config.ts). It records a short end-to-end tour of the Example Integration
  * UI as a WebM, which ci/capture-video.sh then transcodes to mp4 (+ a GIF that
  * embeds like a screenshot) under docs/videos/.
  *
@@ -9,7 +9,7 @@
  *   bash ci/capture-video.sh
  *
  * Or directly (raw WebM only), from tests/e2e/:
- *   VIDEO_DIR=../../docs/videos npx playwright test --config=videos.config.ts
+ *   VIDEO_DIR=../../docs/videos npx playwright test --config=walkthrough.config.ts
  *
  * Unlike the screenshot captures, video is wired at the browser *context* level
  * (`recordVideo`) and the file is only flushed when the context closes — so this

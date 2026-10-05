@@ -2,10 +2,10 @@
 
 Two kinds of entity, both driven by the coordinator (the single read path):
 
-* ``ExampleTotalSensor`` — one summary sensor: the count of items, with the sum
-  of their values as an attribute. Always present.
-* ``ExampleItemSensor`` — one per item, state = the item's ``value``. ``unique_id``
-  is anchored to the item ``id`` so it survives renames.
+* ``ExampleTotalSensor`` — one summary sensor: the count of items, with
+  the sum of their values as an attribute. Always present.
+* ``ExampleItemSensor`` — one per item, state = the item's ``value``.
+  ``unique_id`` is anchored to the item ``id`` so it survives renames.
 
 The per-item entity set is reconciled on each coordinator refresh: new items add
 an entity, deleted items remove theirs. This mirrors the common HA pattern of a

@@ -1,0 +1,12 @@
+---
+# House rule. Do not open with why a reader should care.
+# Start with the fact: "The integration supports ...". See .amazonq/rules/writing-style.md.
+extends: existence
+message: "Motivational opener: '%s'. Start with the fact, not the reason to care."
+level: error
+ignorecase: true
+tokens:
+  - '\beasy to (?:forget|ignore|miss|lose)\b'
+  - '\bnobody (?:can|wants|sees|checks)\b'
+  - '\bthe point\b'
+  - '\bwhich is what it needed\b'

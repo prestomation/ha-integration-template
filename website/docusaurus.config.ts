@@ -1,0 +1,167 @@
+import type {Config} from '@docusaurus/types';
+import type * as Preset from '@docusaurus/preset-classic';
+import {themes as prismThemes} from 'prism-react-renderer';
+
+// GitHub Pages serves the production site under /<repo>/. PR previews are deployed
+// under /<repo>/pr-preview/pr-<n>/, so the deploy workflows set DOCS_BASE_URL to keep
+// asset paths correct for each deploy target.
+// `scripts/rename.py --repo OWNER/NAME` rewrites this slug.
+const repoSlug = 'prestomation/ha-integration-template';
+const [organizationName, projectName] = repoSlug.split('/');
+const baseUrl = process.env.DOCS_BASE_URL ?? `/${projectName}/`;
+
+// DOCS_VERSION is injected by docs-deploy.yml from manifest.json so the navbar
+// shows the release the site was built from. Falls back to 'dev' locally and in
+// PR previews.
+const docsVersion = process.env.DOCS_VERSION ?? 'dev';
+
+const repoUrl = `https://github.com/${organizationName}/${projectName}`;
+const editUrl = `${repoUrl}/tree/main/website/`;
+
+const config: Config = {
+  title: 'Example Integration',
+  tagline: 'A template for a Home Assistant custom integration',
+  favicon: 'img/favicon.svg',
+
+  url: `https://${organizationName}.github.io`,
+  baseUrl,
+
+  organizationName,
+  projectName,
+  trailingSlash: false,
+
+  onBrokenLinks: 'throw',
+  // Anchors are tracked separately from page links and default to 'warn', so a link
+  // to a heading that doesn't exist on the target page (e.g. a README same-page
+  // anchor whose section moved to its own guide page without being registered in
+  // sync-docs.mjs) would slip through. Fail the build on those too.
+  onBrokenAnchors: 'throw',
+
+  markdown: {
+    // Treat .md as CommonMark (and .mdx as MDX). The generated pages carry
+    // literal { } and < > in prose/tables, which MDX would mis-parse as JSX.
+    format: 'detect',
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
+
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en'],
+  },
+
+  presets: [
+    [
+      'classic',
+      {
+        // User Guide is the default docs instance, served under /docs.
+        docs: {
+          path: 'docs',
+          routeBasePath: 'docs',
+          sidebarPath: './sidebars.ts',
+          editUrl,
+        },
+        blog: false,
+        theme: {
+          customCss: './src/css/custom.css',
+        },
+      } satisfies Preset.Options,
+    ],
+  ],
+
+  plugins: [
+    [
+      // Developer Guide — a second docs instance served under /developer.
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'developer',
+        path: 'developer',
+        routeBasePath: 'developer',
+        sidebarPath: './sidebarsDeveloper.ts',
+        editUrl,
+      },
+    ],
+  ],
+
+  themeConfig: {
+    image: 'img/logo.svg',
+    colorMode: {
+      defaultMode: 'light',
+      respectPrefersColorScheme: true,
+    },
+    navbar: {
+      title: 'Example Integration',
+      logo: {
+        alt: 'Example Integration',
+        src: 'img/logo.svg',
+      },
+      items: [
+        {
+          type: 'docSidebar',
+          sidebarId: 'userSidebar',
+          position: 'left',
+          label: 'User Guide',
+        },
+        {
+          type: 'docSidebar',
+          docsPluginId: 'developer',
+          sidebarId: 'developerSidebar',
+          position: 'left',
+          label: 'Developer Guide',
+        },
+        {
+          to: '/docs/release-notes',
+          label: 'Release Notes',
+          position: 'left',
+        },
+        {
+          label: docsVersion !== 'dev' ? `v${docsVersion}` : 'dev',
+          href: docsVersion !== 'dev'
+            ? `${repoUrl}/releases/tag/v${docsVersion}`
+            : `${repoUrl}/commits/main`,
+          position: 'right',
+        },
+        {
+          href: repoUrl,
+          label: 'GitHub',
+          position: 'right',
+        },
+      ],
+    },
+    footer: {
+      style: 'dark',
+      links: [
+        {
+          title: 'Docs',
+          items: [
+            {label: 'User Guide', to: '/docs/intro'},
+            {label: 'Developer Guide', to: '/developer/integrating'},
+          ],
+        },
+        {
+          title: 'Community',
+          items: [
+            {label: 'Home Assistant', href: 'https://www.home-assistant.io/'},
+            {label: 'HACS', href: 'https://hacs.xyz/'},
+          ],
+        },
+        {
+          title: 'More',
+          items: [
+            {label: 'GitHub', href: repoUrl},
+            {label: 'Issues', href: `${repoUrl}/issues`},
+          ],
+        },
+      ],
+      copyright: `Example Integration, a community Home Assistant integration. Built with Docusaurus.`,
+    },
+    prism: {
+      theme: prismThemes.github,
+      darkTheme: prismThemes.dracula,
+      additionalLanguages: ['bash', 'yaml', 'python', 'json'],
+    },
+  } satisfies Preset.ThemeConfig,
+};
+
+export default config;
