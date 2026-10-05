@@ -80,4 +80,5 @@ def test_jobs_read_the_decision() -> None:
     assert (
         jobs["release"]["outputs"]["publish"] == "${{ steps.publish.outputs.publish }}"
     )
+    assert "needs.release.outputs.publish == 'true'" in jobs["deploy-docs"]["if"]
     assert "needs.release.outputs.publish == 'true'" in jobs["notify-issues"]["if"]

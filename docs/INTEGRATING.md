@@ -1,19 +1,27 @@
-# Integrating with the Example Integration
+---
+title: Integrating with the integration
+summary: How automations and other integrations use the services, events and entities, for integrators.
+---
 
-Other integrations, automations, scripts, and voice assistants interact with the
-Example Integration through two stable surfaces: **services** (to act) and **events**
-(to observe). Never reach into its storage or websocket commands.
+# Integrate with Example Integration
 
-## Services (the action surface)
+Automations, scripts, voice assistants and other integrations use 2 stable surfaces:
+**services** to act and **events** to observe. Do not read the storage file or call the
+websocket commands. The panel and the card use those, and they can change.
 
-| Service | Purpose | Fields |
+The [API reference](https://prestomation.github.io/ha-integration-template/developer/api)
+lists every service field, event payload and entity attribute. The site generates it
+from the integration.
+
+## Services
+
+| Service | Use | Fields |
 |---|---|---|
-| `example_integration.add_item` | Create an item | `name` (required), `value` (optional int) |
+| `example_integration.add_item` | Create an item | `name` (required), `value` (optional integer) |
 | `example_integration.update_item` | Change an item | `item_id` (required), `name`, `value` |
 | `example_integration.delete_item` | Remove an item | `item_id` (required) |
 
-`add_item` returns a response with the new `item_id` (call with
-`return_response`):
+`add_item` returns the new `item_id` when the call asks for a response:
 
 ```yaml
 action:
@@ -22,23 +30,29 @@ action:
       name: Garage shelf
       value: 4
     response_variable: result
-  # result.item_id is now available
+  # result.item_id holds the new id
 ```
 
-## Events (the observation surface)
+Guard each call with `hass.services.has_service("example_integration", "<service>")`,
+so your integration still works when this one is not installed.
 
-See [EVENTS.md](EVENTS.md) for the full catalog and payloads. Subscribe with a plain
-`event` trigger on `example_integration_item_{created,updated,deleted}`.
+## Events
 
-## Reading current state
+[EVENTS.md](EVENTS.md) has the catalog and the payloads. Use an `event` trigger on
+`example_integration_item_created`, `example_integration_item_updated` or
+`example_integration_item_deleted`.
 
-Each item is exposed as a `sensor` entity (state = its `value`, anchored to a stable
-`unique_id`), plus a summary `sensor.total_items` (count, with `total_value` as an
-attribute). Read these via the normal state APIs.
+## Current state
 
-## Contract notes
+Each item has a `sensor` entity. Its state is the item's `value`, and its `unique_id` is
+stable. A total sensor holds the number of items, with the sum of the values in its
+`total_value` attribute. Read these entities through the normal state API.
 
-- Item `id`s are opaque and stable across renames — key off them, not the name.
-- Services raise `ServiceValidationError` for bad input (unknown id, empty name).
-- The same store methods back the services and the panel/card websocket commands, so
-  any surface that mutates data emits the same events.
+## Contract
+
+- An item `id` is opaque and stays the same when the item is renamed. Use the id, not the
+  name.
+- A service raises `ServiceValidationError` for bad input, such as an unknown id or an
+  empty name.
+- The services and the websocket commands of the panel and the card use the same store
+  methods. A change from any surface fires the same event.

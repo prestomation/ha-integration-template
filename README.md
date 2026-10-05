@@ -11,116 +11,122 @@
 [![HACS Validation][hacs-validation-shield]][hacs-validation]
 [![HA Version][ha-version-shield]][ha-version]
 
-A batteries-included **template for building a Home Assistant custom integration** —
-backend, a sidebar panel, a Lovelace card, translations, bus events, services, and a
-full four-tier test suite, all wired to CI and HACS. Clone it, rename it, and replace
-the example feature with your own.
+A **template for a Home Assistant custom integration**: a backend, a sidebar panel, a
+dashboard card, translations, bus events, services and a full test suite, wired to CI
+and HACS. Clone it, rename it, and replace the example feature with your own.
 
-The example feature is a tiny **items list** (`example_integration`): a set of named
-items, each with a numeric value. It's deliberately trivial — the point is the
-*scaffolding and conventions* around it.
+The example feature is a small **items list** (`example_integration`). Each item has a
+name and an integer value. The feature is small on purpose. The subject of the template
+is the structure and the conventions around it.
 
-## What's included
+## Contents
 
-| Area | What you get |
+| Area | Contents |
 |---|---|
-| **Backend** | Pure HA-free core (`models.py`, `events.py`), a single-chokepoint `ExampleStore`, a `DataUpdateCoordinator`, a `sensor` platform, a `config_flow`, and `diagnostics`. |
-| **Services** | `add_item` / `update_item` / `delete_item` — the automation-facing contract, with `services.yaml` + localization. |
-| **Events** | `example_integration_item_{created,updated,deleted}` fired at the store chokepoint, documented in [`docs/EVENTS.md`](docs/EVENTS.md). |
-| **Frontend** | A deep-linked sidebar **panel** (admin) and a dashboard **Lovelace card** (display), TypeScript + Rollup, with a tiny dependency-free i18n. |
-| **Translations** | Backend `strings.json` + `translations/` and frontend `src/locales/` (`en`, `de`), guarded by parity tests. |
-| **Tests** | Four tiers: pure unit, **in-process HA** component, Docker integration, and Playwright e2e + screenshot capture. |
-| **CI / release** | `lint`, `test`, `integration`, `e2e`, `mutation`, `hacs`, a version-checked `release` workflow, and a nightly run against the Home Assistant beta. Plus dependabot and issue/PR templates. |
-| **Guardrails** | Automated gates covering types, prose, tests, mutation score, translations, fixtures, API-surface drift, and release consistency. See [Guardrails](#guardrails). |
-| **Agentic rules** | `AGENTS.md`, `CLAUDE.md`, `.amazonq/rules/`, and a SessionStart hook — conventions and hard gates that coding agents auto-load. |
-| **Rename script** | `scripts/rename.py your_domain "Your Name"` rewrites every placeholder + renames the component dir in one step. |
+| **Backend** | A pure core with no Home Assistant import (`models.py`, `events.py`), 1 write path (`ExampleStore`), a `DataUpdateCoordinator`, a `sensor` platform, a `config_flow` and `diagnostics`. |
+| **Services** | `add_item`, `update_item` and `delete_item`, with `services.yaml` and localized text. |
+| **Events** | `example_integration_item_{created,updated,deleted}`, fired by the store and described in [`docs/EVENTS.md`](docs/EVENTS.md). |
+| **Frontend** | A deep-linked sidebar **panel** for administration and a dashboard **card** for display, in TypeScript and Rollup, with a small i18n module and no runtime dependency. |
+| **Translations** | Backend `strings.json` and `translations/`, and frontend `src/locales/` (`en`, `de`), with parity tests. |
+| **Tests** | Pure unit, in-process Home Assistant component, Docker integration, Playwright browser, and mutation testing. |
+| **Docs** | A Docusaurus site in `website/` built from `docs/guide/` and `docs/*.md`, with a generated API reference, and design docs in `docs/design/` that CI keeps in step with the code. |
+| **CI and release** | Lint, test, mutation, integration, e2e, HACS, a version-checked release that tells each fixed issue, PR preview builds, and a nightly run against the Home Assistant beta. |
+| **Guardrails** | Automated gates for types, prose, tests, mutation score, translations, fixtures, API-surface drift, docs drift and release consistency. See [Guardrails](#guardrails). |
+| **Agent rules** | `AGENTS.md`, `CLAUDE.md`, `.amazonq/rules/`, Claude Code skills and hooks: the conventions and hard gates that coding agents load. |
+| **Rename script** | `scripts/rename.py your_domain "Your Name"` rewrites every placeholder and renames the component directory in 1 step. |
 
 ## The example feature
 
-**Sidebar panel** — administration (create / edit / delete items), deep-linked so
-Back/Forward work and any view is shareable by URL:
+**Sidebar panel**: create, edit and delete items. Each page has its own URL, so Back
+and Forward work.
 
-![Panel — items list](docs/images/panel-list.png)
+![Panel with a list of items](docs/images/panel-list.png)
 
-![Panel — item detail](docs/images/panel-detail.png)
+![Panel with the detail of an item](docs/images/panel-detail.png)
 
-**Dashboard card** — read-only display, auto-registered in the "Add card" picker:
+**Dashboard card**: shows the items. The integration adds it to the card picker.
 
 ![Dashboard card](docs/images/card.png)
 
-## Using the template
+The [user guide](docs/guide/start/panel.md) has the detail.
 
-1. **Rename** — one command rewrites every placeholder (domain, display name,
-   web-component / CSS / symbol prefixes) and renames the component directory:
+## Use the template
+
+1. **Rename.** 1 command rewrites every placeholder (domain, display name, web
+   component, CSS and symbol prefixes) and renames the component directory:
 
    ```bash
    python scripts/rename.py your_domain "Your Name"
    # optional explicit short prefix (default: derived from the domain):
    # python scripts/rename.py your_domain "Your Name" --prefix yd
+   # optional repository slug for the badges, the docs site and the manifest URLs:
+   # python scripts/rename.py your_domain "Your Name" --repo you/your-repo
    ```
 
-   Review `git diff` afterwards. (The script auto-runs `ruff format` so the result
-   is lint-clean.)
-2. **Replace the model.** Swap the items model (`models.py`, `store.py`, `sensor.py`,
-   the panel/card UI, `strings.json`/locales) for your domain. Keep the conventions.
-3. **Run the tests** (see below) and keep them green as you build.
+   Read `git diff` after the rename. The script runs `ruff format` and reports each line
+   that is then too long.
+2. **Replace the model.** Change the items model (`models.py`, `store.py`, `sensor.py`,
+   the panel and card UI, `strings.json` and the locales) to your own domain, and keep
+   each convention. Rewrite the design docs in `docs/design/` to match, then run
+   `python3 ci/docs.py stamp --all`.
+3. **Run the tests** (see below) and keep them green.
 
-## Running the tests
+## Run the tests
 
-The four tiers, cheapest first (see [`AGENTS.md`](AGENTS.md) for details):
+The tiers, cheapest first (see [`.amazonq/rules/testing.md`](.amazonq/rules/testing.md)):
 
 ```bash
-# 1. Pure unit (no HA harness; `pip install pytest`)
+# All CI dependencies into .venv (idempotent). Then: source .venv/bin/activate
+bash ci/setup-ci-deps.sh
+
+# 1. Pure unit (no HA harness)
 bash ci/test-python-unit.sh
 
-# 2. Component — real in-process HA
-pip install -r requirements-test.txt home-assistant-frontend
+# 2. Component: a real in-process Home Assistant
 bash ci/test-python-component.sh
 
 # 3. Frontend (vitest)
 npm ci && bash ci/build-panel.sh && bash ci/test-frontend.sh
 
-# 4. Docker integration + Playwright e2e (brings HA up, runs, tears down)
+# 4. Docker integration and Playwright e2e (starts HA, runs, stops it)
 bash ci/e2e-up.sh
 
-# Lint / format (also enforced in CI)
+# Lint, format, types and docs (also in CI)
 ruff check custom_components tests ci scripts && ruff format --check custom_components tests ci scripts
+mypy custom_components/example_integration
+python3 ci/docs.py check
 ```
 
-> **Important:** the component tier and the Docker integration tier **cannot share a
-> pytest invocation** — `pytest-homeassistant-custom-component` pulls in
-> `pytest-socket`, which blocks the real network the Docker tier needs. They run as
-> separate steps.
+> **Warning:** run the component tier and the Docker integration tier in separate pytest
+> runs. `pytest-homeassistant-custom-component` pulls in `pytest-socket`, which blocks
+> the real network that the Docker tier needs.
 
 ## Quality scale
 
-The template is built to demonstrate the practices behind Home Assistant's
-[**Platinum** integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/),
-so the result you build on top of it starts from a strong baseline:
+The template uses the practices of the Home Assistant
+[**Platinum** integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/):
 
-- **Strict typing** — fully typed, ships `py.typed`, and CI runs `mypy` against the
-  integration with Home Assistant installed (`lint.yml`, config in `pyproject.toml`).
-- **Async, single-coordinator core**; one mutation chokepoint (`ExampleStore`).
-- **Localized exceptions** — services raise `ServiceValidationError` with
-  `translation_key`s defined under `strings.json` → `exceptions` (en + de). A unit
-  drift-guard (`tests/unit/test_exception_translations.py`) keeps every raise
-  localizable.
-- **One service device** groups the integration's entities (`DeviceInfo` with
+- **Strict typing**, with `py.typed`. CI runs `mypy` with Home Assistant installed
+  (`lint.yml`, config in `pyproject.toml`).
+- **An async core with 1 coordinator** and 1 write path (`ExampleStore`).
+- **Localized exceptions.** Services raise `ServiceValidationError` with a
+  `translation_key` from `strings.json` `exceptions` (en and de). A unit test
+  (`tests/unit/test_exception_translations.py`) keeps each raise localized.
+- **1 service device** groups the entities of the integration (`DeviceInfo` with
   `entry_type=SERVICE`).
 
-It intentionally **does not stamp a `quality_scale` tier in `manifest.json`** — the
-real tier depends on the domain you build after forking (whether your integration
-talks to a device, needs discovery/auth, etc.). Add the manifest key and a
-`quality_scale.yaml` ledger once your integration's scope is settled.
+The manifest has **no `quality_scale` tier**. The tier depends on the domain that you
+build: a device to talk to, discovery and auth all change it. Add
+the manifest key and a `quality_scale.yaml` ledger when the scope is settled.
 
 ## Guardrails
 
-Most of the value in this template is the set of checks it brings with it. Each one
-exists because the failure it catches leaves no trace on its own: a job that goes
-green having tested a Home Assistant nobody runs, or a changelog entry for work that
-never reached a release.
+Most of the value of the template is in the checks that come with it. Each one catches a
+failure that leaves no trace on its own. One such failure is a job that is green after
+it tested an old Home Assistant. Another is a changelog entry for work that is in no
+release.
 
-The workflow and conventions behind them live in [`AGENTS.md`](AGENTS.md) and
+The workflow and the conventions behind them are in [`AGENTS.md`](AGENTS.md) and
 [`.amazonq/rules/`](.amazonq/rules/).
 
 **On every pull request:**
@@ -128,40 +134,54 @@ The workflow and conventions behind them live in [`AGENTS.md`](AGENTS.md) and
 | Guardrail | Where | What it catches |
 |---|---|---|
 | **ruff** lint + format | `lint.yml` | Style and formatting drift across `custom_components`, `tests`, `ci`, `scripts`. |
-| **mypy**, strict, with Home Assistant installed | `lint.yml` | Type errors against the real HA API. The integration is fully typed and includes `py.typed`. |
+| **mypy**, strict, with Home Assistant installed | `lint.yml` | Type errors against the real HA API, from the 1 list in `requirements-typing.txt`. |
 | **Stale Home Assistant resolve** | `ci/check-ha-version.py` | pip quietly backtracking to a months-old HA when the runner's Python sits below HA's floor. The job stays green while checking an API nobody runs. |
-| **Prose linting for AI-writing tells** | `lint.yml` (vale) | "Delve", empty padding, em-dash overuse in the README, CHANGELOG, `docs/`, and the strings Home Assistant renders. Scoped to the lines a PR touches. |
-| **CHANGELOG release gap** | `ci/check-changelog-release-gap.py` | An entry folded into a section whose version is already tagged. The release job sees no version bump, skips, and the entry never reaches a user. |
-| **The test tiers** | `test.yml`, `integration.yml`, `e2e.yml` | Pure unit, in-process HA component, Docker integration over REST/WS, and Playwright in a real browser. |
-| **Mutation testing at 80%** | `mutation.yml` | A test that runs a line without asserting anything that would catch it being wrong. Scoped to the code the branch changed. |
-| **Coverage comment** | `pytest_coverage.yml` | Untested new code, surfaced in review rather than in a report nobody opens. |
-| **Translation parity** | `tests/unit/test_translations_parity.py`, `frontend/test/i18n.test.js` | Missing keys, mismatched `{placeholders}`, and English left in a non-English locale. |
+| **Prose linting** | `lint.yml` (vale) | AI-writing tells and breaks of the house STE rules (`styles/STE/`) in the README, CHANGELOG, `docs/`, and the strings Home Assistant renders. Scoped to the lines a PR touches. |
+| **Docs audit** | `lint.yml` (`docs-audit`, `ci/docs.py check`) | A design doc that no longer matches its code (source hash drift), a source file that no design doc covers, a doc over its length cap, history in a doc, a broken link, and a reference to a file or function that does not exist. |
+| **CHANGELOG release gap** | `ci/check-changelog-release-gap.py` | An entry folded into a section whose version is already tagged, `manifest.json` and `PANEL_VERSION` that differ, and a top section that no version bump will release. |
+| **The test tiers** | `test.yml`, `integration.yml`, `e2e.yml` | Pure unit, in-process HA component, Docker integration over REST/WS, and Playwright in a real browser at desktop and phone width. |
+| **Mutation testing at 80%** | `mutation.yml` | A test that runs a line without asserting anything that would catch it being wrong. Scoped to the code the branch changed. It also fails a run in which Stryker ran no test. |
+| **Coverage comment** | `pytest_coverage.yml` | Untested new code, shown in review rather than in a report nobody opens. |
+| **Translation parity** | `tests/unit/test_translations_parity.py`, `frontend/test/i18n-parity.test.js` | Missing keys, mismatched `{placeholders}`, and English left in a non-English locale. |
 | **Localized exceptions** | `tests/unit/test_exception_translations.py` | A `raise` a user could see that has no `translation_key` behind it. |
 | **API-surface drift** | `tests/unit/test_api_surface.py` | A service, event, payload field, websocket command, or entity platform added to one registry and forgotten in the others. Parses the component's own source and compares it to `api_surface.py`. |
+| **Generated API reference** | `tests/unit/test_generate_api_docs.py` | A surface in `api_surface.py` that the generated reference page leaves out. |
 | **Seeded fixture cleanliness** | `tests/unit/test_integration_fixture_clean.py` | A local Docker run committed back into the seeded config entry, which then fails on a pristine checkout while passing locally. |
+| **Docs site build** | `docs-preview.yml` | A guide page with no sidebar entry, a broken link or anchor, and a missing image. Posts a preview link and the changed pages. |
+| **Walkthrough capture** | `walkthrough-preview.yml` | A tour that no longer runs. The capture job holds no write token, and a failed capture fails the check. |
 | **HACS validation + hassfest** | `test.yml`, `hacs.yml` | Manifest, brand, and repository-structure problems that block installation. |
 | **Release consistency** | `release.yml` | `manifest.json` version, `const.py` `PANEL_VERSION`, and the `## [X.Y.Z]` CHANGELOG section disagreeing with each other. |
-| **Dependabot auto-merge** | `dependabot-auto-merge.yml` | A bump merging on a partial check list. It waits for every check on the head commit, not the hand-maintained required-checks list. |
+| **Release publish gate** | `release.yml`, `tests/unit/test_ci_release_publish_gate.py` | A tag, a release or a docs deploy from a branch other than `main`, or from a dry run. |
+| **Dependabot auto-merge** | `dependabot-auto-merge.yml`, `ci/wait_for_checks.py` | A bump merging on a partial check list. It waits for every check on the head commit, not the hand-maintained required-checks list. |
+
+**After a release:**
+
+| Guardrail | Where | What it catches |
+|---|---|---|
+| **Issue notices** | `release.yml` (`notify-issues`), `ci/release-issues.py` | A fixed issue that nobody tells. A beta comments on each `(Fixes #N)` issue, a stable comments and closes it, and a CI warning names an issue that a commit fixed and the CHANGELOG forgot. |
 
 **Nightly, gating nothing:**
 
 | Guardrail | Where | What it catches |
 |---|---|---|
-| **Home Assistant beta run** | `ha-beta.yml` | A breaking change in the next HA release, roughly four weeks before users get it. Runs the Docker and browser tiers against `beta` and type-checks against a pre-release HA, then files one reusable issue. |
+| **Home Assistant beta run** | `ha-beta.yml` | A breaking change in the next HA release, roughly four weeks before users get it. Runs the Docker and browser tiers against `beta` and type-checks against a pre-release HA, then files one reusable issue, also when a job times out. |
 
 **Enforced in review, not by a job:**
 
-- **Screenshots.** A PR touching the panel or card UI is not mergeable until the body
-  embeds current screenshots of the changed surface, captured with the Playwright
-  harness and committed under `docs/images/`.
-- **The video walkthrough.** A PR adding a new user-facing UI surface extends the tour
-  in `tests/e2e/videos.capture.ts`. CI captures it and posts a sticky comment with the
-  gif, so nothing is committed. Capture itself is a soft gate.
+- **Screenshots.** A PR that touches the panel or card UI needs current desktop and
+  phone screenshots of each changed surface in its body. Capture them with the
+  Playwright harness and commit them under `docs/images/`.
+- **The video walkthrough.** A PR that adds a user-facing UI surface extends the tour in
+  `tests/e2e/walkthrough.capture.ts`. CI captures it and posts a sticky comment with the
+  gif. Nothing is committed.
+- **One-way doors and Security.** A PR body lists each external contract that it commits
+  to, and says for each changed surface if it is admin-only or open
+  (`.github/pull_request_template.md`).
 - **Every data action is a service, and every state change fires a documented event.**
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 <!--
 Badge reference links. `scripts/rename.py --repo owner/name` rewrites the

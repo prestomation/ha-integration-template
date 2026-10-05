@@ -34,7 +34,9 @@ docs/videos/
 
 # Vale style packages fetched by `vale sync` per .vale.ini. This is a synced
 # dependency, not source: vale-cli/vale-action fetches its own copy in CI.
-styles/
+styles/*
+# The house style is source, not a synced package.
+!styles/STE/
 
 # Mutation testing scratch (mutmut copies the project into mutants/; Stryker
 # sandboxes into .stryker-tmp/ and writes its report into reports/).
@@ -46,4 +48,5 @@ reports/
 
 # Build artifacts
 example_integration.zip
+# The lock that ci/setup-ci-deps.sh takes while it runs.
 .setup-ci-deps.lock/

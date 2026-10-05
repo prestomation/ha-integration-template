@@ -1,59 +1,10 @@
-# HA Integration Template — Claude Code memory
+---
+title: Claude Code memory
+summary: Loads AGENTS.md into every Claude Code session for the integration.
+---
+
+# Example Integration — Claude Code memory
 
 @AGENTS.md
 
-The project's workflow, conventions, and **hard gates** live in `AGENTS.md`
-(imported above) and `.amazonq/rules/`. Read them before pushing. The README's
-**Guardrails** section is the short list of every automated check and what each one
-catches.
-
-Six gates worth repeating because they are easy to miss:
-
-1. **Every PR that touches the panel or card UI
-   (`custom_components/example_integration/frontend/src/`) MUST include current
-   screenshots** of the changed surface — captured with the Playwright harness,
-   committed under `docs/images/`, and embedded in the PR body (SHA-pinned
-   `raw.githubusercontent.com` URL, HTML `<img>` tag). Look at every PNG before
-   committing it, and remember a screenshot is documentation, not verification: when
-   a capture adds a surface, add an assertion on it under `tests/e2e/tests/` too.
-   See AGENTS.md "Workflow".
-
-2. **Every PR that adds a _new user-facing UI feature_ should keep the video
-   walkthrough current — but CI captures it; you never commit a video.**
-   `walkthrough-preview.yml` runs `tests/e2e/videos.capture.ts` on every PR, publishes
-   the gif/mp4 to an orphan `gh-pages` branch, and posts a **sticky PR comment that
-   embeds the gif inline** (via a `raw.githubusercontent.com` URL — no GitHub Pages
-   setup needed). The gate is *editing the tour*: when a feature adds a new surface,
-   extend `videos.capture.ts` to step through it in the same PR. `docs/videos/` is
-   gitignored and media never touches `main` (zero repo bloat); capture is a soft gate.
-   Pure bug-fix / styling PRs stay on the screenshots gate only. See AGENTS.md "Workflow".
-
-3. **The component test tier and the Docker integration tier cannot share a pytest
-   invocation** — `pytest-homeassistant-custom-component` pulls in `pytest-socket`,
-   which blocks the real network the Docker tier needs. Run them separately
-   (`ci/test-python-component.sh` vs `ci/test-python-integration.sh`). See
-   AGENTS.md "Tests".
-
-4. **`mutation.yml` gates every PR at an 80% mutation score on the code it
-   changed** (mutmut for Python, Stryker for TypeScript). Surviving mutants mean a
-   test asserts nothing useful — kill them, or annotate a genuinely equivalent
-   mutant with a reason. Never lower the threshold to get green. The mutable
-   surface is an allowlist: `only_mutate` in `[tool.mutmut]` and `mutate` in
-   `stryker.conf.json`. See AGENTS.md "Mutation testing".
-
-5. **Never add a CHANGELOG entry to a section whose version is already released, and
-   never edit prose without expecting vale to read it.** `lint.yml`'s
-   `changelog-release-gap` job fails the first (the entry would never ship, because
-   `release.yml` skips a version it has already tagged); its `vale` job fails the
-   second, diff-scoped to the lines you touched. See AGENTS.md "Workflow".
-
-6. **A new integrator-facing surface is not done until `api_surface.py` declares it.**
-   Services, events and payloads, entity platforms and attributes, websocket commands,
-   HTTP routes. The runtime consumes the model (`async_unload_entry` iterates
-   `SERVICE_NAMES`) and `tests/unit/test_api_surface.py` parses the component source
-   and fails on drift. See AGENTS.md "Conventions".
-
-**Any CI job that installs Home Assistant** must run on a Python at or above HA's own
-floor and verify what pip actually resolved (`ci/check-ha-version.py`). Below that
-floor pip does not fail; it backtracks to a months-old HA and the job goes green
-having checked an API nobody runs. See AGENTS.md "Home Assistant versions".
+The full rules are in `.amazonq/rules/`. `AGENTS.md` links each file by topic.

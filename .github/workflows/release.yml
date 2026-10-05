@@ -149,6 +149,23 @@ jobs:
           prerelease: ${{ steps.check.outputs.prerelease == 'true' }}
           files: example_integration.zip
 
+  # Deploy the docs site once a *stable* release has been cut. We call the deploy
+  # workflow directly (workflow_call) rather than relying on a `release: [released]`
+  # event — that event would be created by this job's GITHUB_TOKEN and so would
+  # never start a workflow run. Pinned to the freshly created tag so the live site
+  # tracks the released commit, never unreleased main HEAD.
+  deploy-docs:
+    needs: release
+    if: >-
+      needs.release.outputs.release == 'true' &&
+      needs.release.outputs.prerelease == 'false' &&
+      needs.release.outputs.publish == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/docs-deploy.yml
+    with:
+      ref: "v${{ needs.release.outputs.version }}"
+
   # Tell every issue this release fixes which version carries the fix. Merging a PR
   # doesn't put anything in a user's Home Assistant, and closing-on-merge is off for
   # this repo, so issues survive past merge on their own; the issue closes here, when

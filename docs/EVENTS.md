@@ -1,18 +1,22 @@
-# Example Integration — events
+---
+title: Events reference
+summary: The bus events that the integration fires, their payloads and example automations, for integrators.
+---
 
-The Example Integration fires a Home Assistant **bus event** for every meaningful
-change to an item — created, updated, deleted. This is the surface automations and
-other integrations build on. Events are *observations* of changes that already flow
-through `ExampleStore`, so they need no separate service.
+# Events
 
-All payloads are built by **pure functions in `events.py`** (no HA imports), fired
-at the **`store.py` mutation chokepoint** — so every surface (panel websocket,
-service call, future integrations) is observed identically.
+The integration fires a Home Assistant **bus event** for each change to an item: create,
+update and delete. Automations and other integrations use these events to react. An
+event observes a change that already goes through `ExampleStore`, so it needs no service
+of its own.
 
-The machine-readable index of the same catalog lives in `api_surface.py`
-(`EVENTS` and `PAYLOAD_SPINES`). `tests/unit/test_api_surface.py` calls the real
-builders and compares their keys against it, so a payload field added to `events.py`
-and described nowhere fails the build rather than reaching you undocumented.
+Pure functions in `events.py` build each payload. The store fires the event after it
+saves the change. A change from the panel, a service call or a websocket command gives the
+same event.
+
+`api_surface.py` (`EVENTS` and `PAYLOAD_SPINES`) is the machine-readable index of this
+catalog. `tests/unit/test_api_surface.py` calls the real builders and compares their keys
+with the index. A payload field that the index does not describe fails the build.
 
 ## Event catalog
 
@@ -21,12 +25,14 @@ Names follow `example_integration_<noun>_<verb>`.
 | Event | Fires when |
 |---|---|
 | `example_integration_item_created` | an item is created |
-| `example_integration_item_updated` | an item actually changes; payload adds `changed_fields` |
+| `example_integration_item_updated` | a field of an item changes; the payload adds `changed_fields` |
 | `example_integration_item_deleted` | an item is removed |
+
+An update that changes no field fires no event.
 
 ## Payloads
 
-Every item event shares a common **spine** (`events.item_event_data`):
+Each item event has the same base payload (`events.item_event_data`):
 
 ```json
 {
@@ -36,7 +42,7 @@ Every item event shares a common **spine** (`events.item_event_data`):
 }
 ```
 
-`item_updated` extends it with the list of fields that changed:
+`item_updated` adds the list of fields that changed:
 
 ```json
 {
@@ -47,9 +53,11 @@ Every item event shares a common **spine** (`events.item_event_data`):
 }
 ```
 
-## Reacting to an event
+`item_deleted` holds the last values of the item before the delete.
 
-Use a plain `event` trigger on the event name:
+## React to an event
+
+Use an `event` trigger on the event name:
 
 ```yaml
 automation:
@@ -65,11 +73,12 @@ automation:
             {{ trigger.event.data.name }} is now {{ trigger.event.data.value }}
 ```
 
-## Adding a new event (checklist)
+## Add a new event
 
 1. Add the constant to `const.py` (`EVENT_ITEM_…`).
 2. Add a pure builder to `events.py`.
-3. Fire it at the relevant `store.py` chokepoint.
-4. Document it in this file.
-5. Cover it in `tests/unit/test_events.py` (payload shape) and
-   `tests/component/test_services_events.py` (fires on the bus).
+3. Fire the event in the matching `store.py` method, after the save.
+4. Add an `EventSpec` to `api_surface.EVENTS`.
+5. Describe the event in this file.
+6. Test the payload shape in `tests/unit/test_events.py`, and test that the event fires
+   on the bus in `tests/component/test_services_events.py`.

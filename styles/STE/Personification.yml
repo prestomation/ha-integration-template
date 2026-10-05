@@ -1,0 +1,14 @@
+---
+# House rule. Software does not carry, live, know, or want.
+# State what the software does or supports. See .amazonq/rules/writing-style.md.
+extends: existence
+message: "Personification: '%s'. Software does not do this. State what it does or supports."
+level: error
+ignorecase: true
+tokens:
+  - '\bcarr(?:y|ies|ied|ying)\b'
+  - '\blives? (?:in|on|with|behind)\b'
+  - '\bhands? (?:out|over|back)\b'
+  - '\btravels?\b'
+  - '\bhonou?rs?\b'
+  - '\b(?:the panel|the card|the integration|the store|the coordinator|the service|the sensor) (?:knows|wants|remembers|cares|learns|feels|thinks|decides|refuses|believes)\b'

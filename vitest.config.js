@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: [
+      'tests/frontend/**/*.test.js',
       'custom_components/example_integration/frontend/test/**/*.test.js',
     ],
   },
