@@ -15,6 +15,9 @@ from pathlib import Path
 import pytest
 
 _SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "rename.py"
+# The display-name placeholder, built from pieces so that a rename of this repository
+# does not rewrite it here. The renamed script still replaces the placeholder.
+_PLACEHOLDER = "".join(["Exam", "ple Integration"])
 
 
 def _load(root: Path, folder: str = "scripts"):
@@ -33,7 +36,7 @@ def _load(root: Path, folder: str = "scripts"):
 def test_the_script_never_rewrites_itself(tmp_path: Path, folder: str) -> None:
     # The skip follows the script, so a fork that moves it keeps the skip.
     rename = _load(tmp_path, folder)
-    (tmp_path / "README.md").write_text("Example Integration\n")
+    (tmp_path / "README.md").write_text(f"{_PLACEHOLDER}\n")
     files = {p.relative_to(tmp_path).as_posix() for p in rename.iter_files()}
     assert "README.md" in files
     assert f"{folder}/rename.py" not in files
@@ -48,7 +51,7 @@ def test_a_rename_without_ruff_exits_non_zero(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
 ) -> None:
     rename = _load(tmp_path)
-    (tmp_path / "README.md").write_text("Example Integration\n")
+    (tmp_path / "README.md").write_text(f"{_PLACEHOLDER}\n")
     monkeypatch.setattr(rename.shutil, "which", lambda name: None)
     assert _main(rename, monkeypatch) == 1
     out = capsys.readouterr().out
