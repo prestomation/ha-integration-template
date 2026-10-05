@@ -23,6 +23,14 @@ here is committed scope. When an item ships, remove it. The design docs in
   `frontend/` directory, and in a development checkout that includes the sources. Build
   into `frontend/dist/` and serve only that.
 
+## Admin-only sync test
+
+An admin-only operation is stated in 3 places: the gate in the code
+(`@websocket_api.require_admin` and the check in the service handler), `admin_only` in
+`api_surface.py`, and the table in `docs/SECURITY.md`. `tests/unit/test_api_surface.py`
+does not compare them. When the first admin-only operation is added, add an AST test
+that the 3 places name the same operations.
+
 ## Localized websocket errors
 
 `connection.send_error` in `websocket_api.py` sends a literal English message, and the

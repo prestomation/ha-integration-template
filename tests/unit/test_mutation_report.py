@@ -115,3 +115,13 @@ def test_gate_ignores_a_report_without_the_field(
     # An older Stryker that does not write testsCompleted must not fail the gate.
     path = _report(tmp_path, [_mutant("Killed", None)])
     assert _main(monkeypatch, path) == 0
+
+
+def test_gate_fails_when_no_reported_mutant_could_be_scored(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    # Mutants that only fail to compile, or that Stryker ignores, score nothing.
+    # Both runners pass --require-mutants, so such a run fails: it tested no code.
+    path = _report(tmp_path, [_mutant("CompileError", 0), _mutant("Ignored", None)])
+    assert _main(monkeypatch, path) == 1
+    assert "none could be scored" in capsys.readouterr().err

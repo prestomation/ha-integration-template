@@ -45,13 +45,19 @@ source_paths = ["custom_components/example_integration"]
 # enumerates the released versions), and `test_ci_release_publish_gate.py` reads
 # `.github/workflows/release.yml` to run the release workflow's publish decision.
 # `test_generate_api_docs.py` reads `website/scripts/doc-map.mjs` to check the page's
-# front matter against the route it is published at.
+# front matter against the route it is published at. `test_pure_core.py` reads the
+# design doc's module map and both mutation thresholds, and `test_rename.py` copies
+# `scripts/rename.py`.
 also_copy = [
     "ci",
     "tests/integration/ha_config",
     "CHANGELOG.md",
     ".github/workflows",
     "website/scripts",
+    "docs",
+    "scripts",
+    "stryker.conf.json",
+    "pyproject.toml",
 ]
 # The mutable surface: the pure core, which the fast `tests/unit` tier covers
 # directly. Everything else in the integration imports Home Assistant and is

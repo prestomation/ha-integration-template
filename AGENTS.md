@@ -31,8 +31,8 @@ or push.
 
 ## Project in brief
 
-- Backend: `custom_components/example_integration/`. The pure core (`models.py`,
-  `events.py`, `const.py`, `api_surface.py`) imports no Home Assistant code.
+- Backend: `custom_components/example_integration/`. The pure core imports no Home
+  Assistant code.
 - Storage: 1 JSON document, `.storage/example_integration`, changed only through
   `ExampleStore`.
 - Frontend: TypeScript and Rollup in `custom_components/example_integration/frontend/`.

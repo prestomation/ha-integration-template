@@ -64,8 +64,11 @@ result in the plan's Security section ([pr-workflow.md](pr-workflow.md)).
 
 ## Pure core
 
-- `models.py`, `events.py`, `const.py` and `api_surface.py` never import `homeassistant`.
-  They unit-test without the HA harness. Mirror this for the core logic of your domain.
+- The pure modules (the module map in the
+  [architecture design doc](../../docs/design/architecture.md#module-map)) never import
+  `homeassistant`. They unit-test without the HA harness. `tests/unit/test_pure_core.py`
+  checks each one, and checks the module map against `_PURE_MODULES` in
+  `tests/unit/conftest.py`. Mirror this for the core logic of your domain.
 - Pass the time in from the caller (`build_item(..., created=dt_util.now().isoformat())`).
   A pure function never reads a clock.
 - All datetimes are timezone-aware. Use `homeassistant.util.dt` at the HA boundary.

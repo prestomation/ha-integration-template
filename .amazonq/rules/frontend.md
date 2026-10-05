@@ -38,9 +38,9 @@ How the panel and the card work is in [frontend](../../docs/design/frontend.md).
 - `add_extra_js_url` is fire-and-forget. On a cold frontend the card element can upgrade
   after the dashboard renders, and Home Assistant then shows an error card that does not
   retry. The e2e helper `openCard` retries with a reload. Do not remove the retry.
-- The integration must set up at Home Assistant startup for the card resource to reach
-  the served pages. The extra-module `<script>` shows only after onboarding, so check it
-  with an authenticated page load, not with `curl /`.
+- The extra-module `<script>` shows only after onboarding, so check it with an
+  authenticated page load, not with `curl /`. The Docker tier seeds a config entry for
+  the card ([testing.md](testing.md#the-seeded-fixture)).
 - **Never tear down the panel or the card resource on unload.** Most unloads are half of
   a reload.
 

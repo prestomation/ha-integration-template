@@ -68,8 +68,5 @@ How the surfaces work is in [events-api](../../docs/design/events-api.md). Integ
 
 ## Errors and escaping
 
-- A service handler raises a localized `ServiceValidationError` for bad input
-  ([architecture.md](architecture.md#localized-text)). A websocket command answers with
-  `connection.send_error`.
-- Escape all user content with `escapeHTML` before it goes into `innerHTML`
-  ([frontend.md](frontend.md#markup-and-text)).
+- Error rules are in [architecture.md](architecture.md#localized-text). Escaping rules
+  are in [frontend.md](frontend.md#markup-and-text).
