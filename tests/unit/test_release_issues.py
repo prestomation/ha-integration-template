@@ -238,7 +238,7 @@ class TestFencedCode:
 
     def test_indented_fence_inside_a_bullet_is_ignored(self):
         text = (
-            "- **A.** Example:\n  ```bash\n  # Fixes #4\n  ```\n  Real text. (Fixes #5)"
+            "- **A.** Sample:\n  ```bash\n  # Fixes #4\n  ```\n  Real text. (Fixes #5)"
         )
         assert _numbers(text) == [5]
 

@@ -86,9 +86,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def _register_services(hass: HomeAssistant) -> None:
     """Register the automation-facing services (idempotent across reloads).
 
-    These are the canonical contract; the panel websocket commands delegate to
-    the same ``ExampleStore`` methods. Mutations refresh the coordinator so the
-    sensor entities re-render.
+    These are the canonical contract; the panel websocket commands delegate
+    to the same ``ExampleStore`` methods. Mutations refresh the coordinator
+    so the sensor entities re-render.
     """
 
     def _coordinator() -> ExampleCoordinator:
