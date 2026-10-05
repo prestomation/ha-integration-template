@@ -1,6 +1,6 @@
 ---
 title: Security model
-summary: What admins and non-admin users can do with the integration, and how to gate a new admin operation, for maintainers and admins.
+summary: The privilege model of the integration, and the steps to gate a new admin operation.
 ---
 
 # Security model
