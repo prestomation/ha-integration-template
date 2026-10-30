@@ -82,3 +82,18 @@ def test_exit_status_is_non_zero_while_work_remains(
         doc_problems=doc_problems,
     )
     assert status == expected
+
+
+def test_a_third_party_ex_name_keeps_its_ex(tmp_path: Path) -> None:
+    # A lockfile names packages such as `error-ex`. Only the template's own `ex-` and
+    # `ex_` prefixes change, so `npm ci` still finds each tarball.
+    rename = _load(tmp_path)
+    replacements = rename.build_replacements("demo_thing", "Demo Thing", "dt")
+    text = (
+        '"resolved": "https://registry.npmjs.org/error-ex/-/error-ex-1.3.4.tgz"\n'
+        '<div class="ex-row" id="input_text.ex_capture">\n'
+    )
+    assert rename.apply_to_text(text, replacements) == (
+        '"resolved": "https://registry.npmjs.org/error-ex/-/error-ex-1.3.4.tgz"\n'
+        '<div class="dt-row" id="input_text.dt_capture">\n'
+    )
