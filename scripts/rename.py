@@ -12,7 +12,8 @@ own integration in one step:
     # site URLs, and the maintainer handle to point at your fork:
     python scripts/rename.py your_domain "Your Name" --repo you/your-repo
 
-What it changes (ordered, boundary-aware so it doesn't corrupt e.g. `flex-`):
+What it changes (ordered, boundary-aware so it doesn't corrupt e.g. `flex-` or
+`error-ex-`):
 
     Example Integration  -> "Your Name"   display name
     example_integration  -> your_domain   domain, static path, ws, imports, paths
@@ -114,8 +115,10 @@ def build_replacements(domain: str, display: str, prefix: str) -> list[tuple[str
         (r"example-", f"{hyphen}-"),
         # Not the plain word "Examples" (a table header, a heading).
         (r"Example(?!s\b)", pascal),
-        (r"\bex-", f"{prefix}-"),
-        (r"\bex_", f"{prefix}_"),
+        # Not after a letter, a digit or a hyphen: a third-party name such as
+        # `error-ex-1.3.4.tgz` in a lockfile keeps its `ex-`.
+        (r"(?<![\w-])ex-", f"{prefix}-"),
+        (r"(?<![\w-])ex_", f"{prefix}_"),
     ]
 
 
