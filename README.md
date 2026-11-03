@@ -151,11 +151,12 @@ docker compose -f tests/integration/docker-compose.yml logs --no-color homeassis
 python scripts/check_ha_log.py --domain example_integration ha.log
 ```
 
-If a test causes a warning on purpose, add 1 entry to `scripts/ha_log_allowlist.txt`: a
-comment line with the reason, then a regular expression on the next line. An entry
-without a reason is rejected. An entry applies to every rule of the gate, so match the
-logger name and the full message, never a short word. Never allowlist a "Detected
-blocking call". Fix the code. The log from the template itself has no such entry.
+If a test causes a warning on purpose, add 1 entry to `scripts/ha_log_allowlist.txt`.
+An entry has 2 lines. The first line is a comment that gives the reason. The second line
+is the regular expression. The script rejects an entry with no reason. An entry applies
+to every rule of the gate. Match the logger name and the full message, never a short
+word. Never allowlist a "Detected blocking call"; fix the code instead.
+The log from the template itself has no such entry.
 
 ## Quality scale
 
