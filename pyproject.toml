@@ -20,6 +20,10 @@ source = ["custom_components/example_integration"]
 # dies with "No source for code". Nothing surfaces this locally: `coverage json` in
 # the repo root relativizes such paths against the cwd they already sit under.
 relative_files = true
+# tests/component/test_blocking_calls.py runs code under this file name, so that
+# blockbuster sees a frame of the integration. The file does not exist on disk, and
+# coverage must not report it ("No source for code").
+omit = ["*/_blocking_guard.py"]
 
 [tool.coverage.report]
 exclude_lines = [
