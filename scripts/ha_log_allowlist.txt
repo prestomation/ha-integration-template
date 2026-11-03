@@ -1,0 +1,14 @@
+# Allowlist for scripts/check_ha_log.py
+#
+# Each entry is a regular expression on its own line. The line before it
+# must be a comment that gives the reason. An entry matches a whole log
+# record (the first line plus its traceback lines). Keep this file short.
+# An entry hides a real problem, so fix the cause when you can.
+#
+# An entry applies to every rule of the gate, so keep it narrow: match the
+# logger name and the full message, never a short word like "timeout".
+#
+# Example:
+#
+# Reason: the test config uses a sensor that does not exist.
+# \[custom_components\.example_integration\.store\] sensor\.does_not_exist is unavailable

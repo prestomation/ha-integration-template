@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install ruff
-        run: pip install ruff
+        run: pip install "$(grep '^ruff==' requirements-test.txt)"
       - name: Ruff lint
         run: ruff check custom_components tests ci scripts
       - name: Ruff format check
