@@ -101,6 +101,63 @@ python3 ci/docs.py check
 > runs. `pytest-homeassistant-custom-component` pulls in `pytest-socket`, which blocks
 > the real network that the Docker tier needs.
 
+## Blocking-call and log gates
+
+Home Assistant warns at run time when integration code blocks the event loop
+("Detected blocking call"). A reviewer can also find it. These 4 gates find it in CI
+first:
+
+1. **`blockbuster` fixture** (`tests/component/conftest.py`). It makes a component test
+   fail when code of the integration makes a blocking call (file, socket or sleep) in
+   the event loop. It ignores blocking calls that Home Assistant and the harness make.
+   `tests/component/test_blocking_calls.py` proves that the fixture is active.
+2. **Python dev mode in the Docker tier.** `tests/integration/docker-compose.yml` sets
+   `PYTHONDEVMODE=1` and `PYTHONASYNCIODEBUG=1`, so the container log shows never-awaited
+   coroutines, unclosed resources and slow callbacks.
+3. **Log gate** (`scripts/check_ha_log.py`). The last step of `integration.yml` saves the
+   container log (`ha.log`, uploaded as the `ha-log` artifact) and runs the script on it.
+   It fails on:
+   - a `WARNING`, `ERROR` or `CRITICAL` record from `custom_components.<domain>`;
+   - a "Detected blocking call" record that names the domain;
+   - a record that names the domain and has a known bad pattern (never awaited, task
+     exception never retrieved, slow callback, unclosed resource, deprecation).
+
+   Warnings that Home Assistant gives to every custom integration are ignored. The script
+   uses only the Python standard library. Exit code 1 means findings, and 2 means that the
+   log had no Home Assistant records (the script then prints the first and last lines).
+4. **"Touch every surface" test** (`tests/integration/test_surfaces.py`). The log gate
+   sees only code that ran. This test downloads the diagnostics, starts the config flow a
+   second time and calls each service. Add a call for each new surface (an options flow,
+   a repair, a websocket command).
+
+`ruff` also runs the `ASYNC` rules. They are a weak guard: they miss a `Path` that is built
+with `/`, and they do not follow a call into a helper. Do not rely on them alone.
+
+**Adapt the gates to your integration.** `python scripts/rename.py your_domain "Your Name"`
+changes everything below for you. If you work by hand, change these places:
+
+| Place | What to set |
+|---|---|
+| `.github/workflows/integration.yml`, `env: INTEGRATION_DOMAIN` | The domain that the log gate watches. This is the only place the workflow names it. |
+| `tests/component/conftest.py`, `SCANNED_MODULE` | The package that `blockbuster` watches. |
+| `tests/integration/test_surfaces.py`, `DOMAIN` | The domain, and 1 call for each surface. |
+| `scripts/ha_log_allowlist.txt` | Your own exceptions. |
+
+**Allowlist.** Run the Docker tier, then run the gate on the real log before you enforce
+it:
+
+```bash
+docker compose -f tests/integration/docker-compose.yml logs --no-color homeassistant > ha.log
+python scripts/check_ha_log.py --domain example_integration ha.log
+```
+
+If a test causes a warning on purpose, add 1 entry to `scripts/ha_log_allowlist.txt`.
+An entry has 2 lines. The first line is a comment that gives the reason. The second line
+is the regular expression. The script rejects an entry with no reason. An entry applies
+to every rule of the gate. Match the logger name and the full message, never a short
+word. Never allowlist a "Detected blocking call"; fix the code instead.
+The log from the template itself has no such entry.
+
 ## Quality scale
 
 The template uses the practices of the Home Assistant
@@ -140,6 +197,8 @@ The workflow and the conventions behind them are in [`AGENTS.md`](AGENTS.md) and
 | **Docs audit** | `lint.yml` (`docs-audit`, `ci/docs.py check`) | A design doc that no longer matches its code (source hash drift), a source file that no design doc covers, a doc over its length cap, history in a doc, a broken link, and a reference to a file or function that does not exist. |
 | **CHANGELOG release gap** | `ci/check-changelog-release-gap.py` | An entry folded into a section whose version is already tagged, `manifest.json` and `PANEL_VERSION` that differ, and a top section that no version bump will release. |
 | **The test tiers** | `test.yml`, `integration.yml`, `e2e.yml` | Pure unit, in-process HA component, Docker integration over REST/WS, and Playwright in a real browser at desktop and phone width. |
+| **Blocking calls in the event loop** | `test.yml` (`blockbuster` fixture), `lint.yml` (ruff `ASYNC`) | A file read, socket call or sleep in integration code that runs in the event loop. Home Assistant warns about it at run time, and a reviewer blocks the release. |
+| **Home Assistant log gate** | `integration.yml`, `scripts/check_ha_log.py` | A warning, an error, a "Detected blocking call" or a never-awaited coroutine from the integration in the log of the Docker tier, which runs in Python dev mode. `tests/integration/test_surfaces.py` makes the integration run each surface. |
 | **Mutation testing at 80%** | `mutation.yml` | A test that runs a line without asserting anything that would catch it being wrong. Scoped to the code the branch changed. It also fails a run in which Stryker ran no test. |
 | **Coverage comment** | `pytest_coverage.yml` | Untested new code, shown in review rather than in a report nobody opens. |
 | **Translation parity** | `tests/unit/test_translations_parity.py`, `frontend/test/i18n-parity.test.js` | Missing keys, mismatched `{placeholders}`, and English left in a non-English locale. |

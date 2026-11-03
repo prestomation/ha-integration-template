@@ -128,3 +128,19 @@ each locale:
 Add a string to a locale only as a translation or as a reviewed cognate.
 `python3 ci/i18n-coverage.py` prints coverage for information only. Add a locale by
 adding `<lang>.json` next to the English source and listing it in `locales/index.ts`.
+
+## Blocking-call and log gates
+
+- **The component tier has an autouse `blockbuster` fixture** (`tests/component/conftest.py`).
+  It watches only calls that have a frame of the integration on the stack
+  (`SCANNED_MODULE`). Home Assistant core and the harness block too, and that is not ours
+  to fix. Do not widen the scope. Do not add a blanket allowance.
+- **The Docker tier runs Home Assistant in Python dev mode** (`PYTHONDEVMODE`,
+  `PYTHONASYNCIODEBUG` in `tests/integration/docker-compose.yml`). The last step of
+  `integration.yml` runs `scripts/check_ha_log.py` on the saved container log.
+- **Run the gate on the real Docker log before you change it**, and before you add an
+  allowlist entry. An entry in `scripts/ha_log_allowlist.txt` has a reason comment and a
+  narrow regex (logger name and full message). Never allowlist a blocking call.
+- **A new surface gets a call in `tests/integration/test_surfaces.py`.** The gate sees
+  only code that ran.
+- **Ruff `ASYNC` is a weak guard.** It misses a `Path` built with `/`.

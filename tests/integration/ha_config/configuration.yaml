@@ -12,6 +12,10 @@ api:
 # Enable frontend (required for the custom sidebar panel + Lovelace card resource)
 frontend:
 
+# Enable the diagnostics download (/api/diagnostics/...). A real HA install has it
+# via default_config; tests/integration/test_surfaces.py downloads it.
+diagnostics:
+
 # Enable the recorder. A real HA install always has it (via default_config); this
 # minimal test config omits default_config, so without it the frontend's
 # recorder/info probe at load is rejected and surfaces as a console error. Enabling

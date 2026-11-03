@@ -9,8 +9,9 @@ websockets
 # missing test dependency fails the run rather than skipping a gate.
 PyYAML
 
-# Linting / formatting (also enforced in CI by .github/workflows/lint.yml).
-ruff
+# Linting / formatting (also enforced in CI by .github/workflows/lint.yml). The
+# lint job installs the version pinned here. Raise the pin on purpose, in its own PR.
+ruff==0.17.3
 
 # The component tier (tests/component) runs against a REAL in-process Home
 # Assistant via this harness. It pulls in pytest-socket, which BLOCKS real
@@ -25,3 +26,9 @@ pytest-homeassistant-custom-component
 # need it (the real HA image ships the frontend).
 home-assistant-frontend
 
+
+# Fails a component test when integration code blocks the event loop (the autouse
+# fixture in tests/component/conftest.py). Home Assistant gives the same warning at
+# run time as "Detected blocking call". Home Assistant itself comes with the harness
+# above, so this file has no separate `homeassistant` line.
+blockbuster>=1.5

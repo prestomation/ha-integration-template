@@ -131,6 +131,8 @@ or push.
 - **An options flow returns a merge of the stored options and the form input**, never
   `user_input` ([architecture.md](.amazonq/rules/architecture.md#options)).
 - **Every user-facing exception has a `translation_key`.**
+- **No blocking call in the event loop.** The `blockbuster` fixture and the log gate
+  enforce it ([testing.md](.amazonq/rules/testing.md#blocking-call-and-log-gates)).
 - Escape all user content with `escapeHTML`. Navigate the panel only by URL.
 - All datetimes are timezone-aware. Pure code takes the time from its caller.
 - **A job that installs Home Assistant runs at or above HA's Python floor** and runs

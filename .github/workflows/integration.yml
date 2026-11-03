@@ -14,6 +14,10 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # CHANGE THIS when you adapt the template by hand: the domain that the log gate
+      # (scripts/check_ha_log.py) watches. scripts/rename.py rewrites it for you.
+      INTEGRATION_DOMAIN: example_integration
     steps:
       - uses: actions/checkout@v7
 
@@ -63,11 +67,28 @@ jobs:
       - name: Run integration tests
         run: bash ci/test-python-integration.sh
 
-      - name: Dump Home Assistant logs on failure
-        if: failure()
+      - name: Save Home Assistant log
+        if: always()
         working-directory: tests/integration
-        run: docker compose logs homeassistant
+        run: docker compose logs --no-color homeassistant > "$GITHUB_WORKSPACE/ha.log"
 
+      - name: Upload Home Assistant log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ha-log
+          path: ha.log
+          if-no-files-found: warn
+
+      # The log must have no warnings or errors from our code, no "Detected blocking
+      # call" for our domain, and no known bad pattern. Add an exception to
+      # scripts/ha_log_allowlist.txt (with a reason). The container runs in Python
+      # dev mode (see tests/integration/docker-compose.yml) so these show up.
+      - name: Check Home Assistant log
+        if: always()
+        run: python scripts/check_ha_log.py --domain "$INTEGRATION_DOMAIN" ha.log
+
+      # Last, so the container runs until the log is saved and checked.
       - name: Cleanup
         if: always()
         working-directory: tests/integration
