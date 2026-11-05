@@ -31,4 +31,4 @@ home-assistant-frontend
 # fixture in tests/component/conftest.py). Home Assistant gives the same warning at
 # run time as "Detected blocking call". Home Assistant itself comes with the harness
 # above, so this file has no separate `homeassistant` line.
-blockbuster>=1.5
+blockbuster>=1.5.29
