@@ -11,7 +11,7 @@ PyYAML
 
 # Linting / formatting (also enforced in CI by .github/workflows/lint.yml). The
 # lint job installs the version pinned here. Raise the pin on purpose, in its own PR.
-ruff==0.17.3
+ruff==0.17.4
 
 # The component tier (tests/component) runs against a REAL in-process Home
 # Assistant via this harness. It pulls in pytest-socket, which BLOCKS real
