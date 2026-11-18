@@ -41,7 +41,7 @@ summary: The branch, review, screenshot, walkthrough and documentation gates tha
   Findings and status go in the PR or in the reply to the person who asked. The PR links
   the issue with `Fixes #N` and the release closes it. PR comments, `/q review` and
   replies to review threads are still required. Repo automation that posts from a fixed
-  template (`notify-issues` in `release.yml`, the `ha-beta.yml` reporter) is allowed.
+  template (`notify-issues` in `release.yml`, the `ha-beta.yml` reporter and closer) is allowed.
   There is 1 exception: the preview-build note of the `preview-comment` skill
   (`.claude/skills/preview-comment/SKILL.md`). The maintainer must ask for it in the
   current session. The agent shows the exact final text first, and posts it unchanged

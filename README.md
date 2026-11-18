@@ -211,7 +211,6 @@ The workflow and the conventions behind them are in [`AGENTS.md`](AGENTS.md) and
 | **HACS validation + hassfest** | `test.yml`, `hacs.yml` | Manifest, brand, and repository-structure problems that block installation. |
 | **Release consistency** | `release.yml` | `manifest.json` version, `const.py` `PANEL_VERSION`, and the `## [X.Y.Z]` CHANGELOG section disagreeing with each other. |
 | **Release publish gate** | `release.yml`, `tests/unit/test_ci_release_publish_gate.py` | A tag, a release or a docs deploy from a branch other than `main`, or from a dry run. |
-| **Dependabot auto-merge** | `dependabot-auto-merge.yml`, `ci/wait_for_checks.py` | A bump merging on a partial check list. It waits for every check on the head commit, not the hand-maintained required-checks list. |
 
 **After a release:**
 
@@ -223,7 +222,7 @@ The workflow and the conventions behind them are in [`AGENTS.md`](AGENTS.md) and
 
 | Guardrail | Where | What it catches |
 |---|---|---|
-| **Home Assistant beta run** | `ha-beta.yml` | A breaking change in the next HA release, roughly four weeks before users get it. Runs the Docker and browser tiers against `beta` and type-checks against a pre-release HA, then files one reusable issue, also when a job times out. |
+| **Home Assistant beta run** | `ha-beta.yml` | A breaking change in the next HA release, roughly four weeks before users get it. Runs the Docker and browser tiers against `beta` and type-checks against a pre-release HA, then files one reusable issue, also when a job times out. The issue closes by itself after a green nightly run. |
 
 **Enforced in review, not by a job:**
 

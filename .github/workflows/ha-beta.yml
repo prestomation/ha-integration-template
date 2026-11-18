@@ -15,6 +15,10 @@ name: HA beta (early warning)
 # signature changes surface as type errors well before they surface as broken
 # behaviour, and a type check is the cheapest early warning there is.
 #
+# The `report` job opens one issue (or comments on the open one) when a job fails. The
+# `close-on-recovery` job closes that issue by itself after a nightly run where all 3
+# jobs pass. A manual run files nothing and closes nothing.
+#
 # Anything resting on a Home Assistant framework contract — device registry, entity
 # registry, device automation — needs an assertion in the Docker tier, not just the
 # component tier: a mocked framework cannot see the contract change.
@@ -248,3 +252,43 @@ jobs:
               });
               core.notice(`Opened issue #${issue.number}`);
             }
+
+  close-on-recovery:
+    name: Close the regression issue
+    needs: [integration, e2e, typing]
+    # Only a nightly run closes the issue, and only when all 3 jobs passed. A skipped,
+    # failed or cancelled job keeps it open. A manual run never closes it.
+    if: >
+      github.event_name == 'schedule' &&
+      needs.integration.result == 'success' &&
+      needs.e2e.result == 'success' &&
+      needs.typing.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close the tracking issue
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const label = 'ha-beta-regression';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo, labels: label, state: 'open', per_page: 1,
+            });
+
+            if (!open.length) {
+              core.info('No open regression issue. Nothing to close.');
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              ...context.repo, issue_number: open[0].number,
+              body: `The nightly Home Assistant \`beta\` run passed: ${runUrl}\n\nThis issue closes by itself.`,
+            });
+            await github.rest.issues.update({
+              ...context.repo, issue_number: open[0].number,
+              state: 'closed', state_reason: 'completed',
+            });
+            core.notice(`Closed issue #${open[0].number}`);
