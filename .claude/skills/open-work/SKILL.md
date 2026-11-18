@@ -69,7 +69,7 @@ The maintainer or an agent must act. Show the items in this order of urgency:
    preview build means: merge the PR. A "works" reply on a beta needs no step: say so.
 4. A PR from an outside contributor with no maintainer review after its last push.
 5. A new issue with no maintainer comment and no linked PR.
-6. A Dependabot PR. With green CI it is ready to merge; with red CI, say what failed.
+6. A Dependabot PR. With green CI it is ready for review; with red CI, say what failed.
 7. A fix in the CHANGELOG under a version that is not in the release list. No build has
    it. Cut a beta.
 

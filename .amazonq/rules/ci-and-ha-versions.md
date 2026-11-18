@@ -16,12 +16,11 @@ summary: What each CI workflow gates, the mutation and typing gates, vale, and h
 | `e2e.yml` | Docker and Playwright; uploads the report on a failure |
 | `walkthrough-preview.yml` | the walkthrough gif comment ([pr-workflow.md](pr-workflow.md#walkthrough-video)) |
 | `docs-preview.yml` | builds the docs site for a PR and links the changed pages |
-| `ha-beta.yml` | nightly against HA `beta`; gates nothing, files `ha-beta-regression` |
+| `ha-beta.yml` | nightly against HA `beta`; gates nothing, files and closes `ha-beta-regression` |
 | `pytest_coverage.yml` | runs the coverage; `post_coverage_to_pr.yml` posts the comment |
 | `release.yml` | tags and publishes on merge ([changelog-and-release.md](changelog-and-release.md)) |
 | `preview-release.yml` | an installable `X.Y.Z.dev<pr>` build for a labelled PR |
 | `docs-deploy.yml` | publishes the docs site after a stable release |
-| `dependabot-auto-merge.yml` | merges a Dependabot PR when every check on its head is green |
 | `hacs.yml` | HACS validation |
 
 - **A pipe hides a failure.** `pytest … | tee log` takes the exit status of `tee`. Put
@@ -33,15 +32,13 @@ summary: What each CI workflow gates, the mutation and typing gates, vale, and h
   only on a schedule, so its inputs come from files that a PR lane also reads.
 - **A job that runs PR code holds a read-only token.** A workflow that must write splits
   into a build job and a publish job that runs no PR code (`walkthrough-preview.yml`,
-  `docs-preview.yml`). A Dependabot PR is a same-repo PR and gets the write token.
+  `docs-preview.yml`).
 - **Each workflow sets `permissions: contents: read` at the top.** A job that needs more
   asks for it in its own block. A job with no block gets the repository default token,
   so `test_ci_action_pins.py` counts it as a write job and requires pinned actions.
 - `pytest_coverage.yml` runs the PR's code with no write token. `post_coverage_to_pr.yml`
   runs from the base branch on `workflow_run` and never checks the PR out.
-- `dependabot-auto-merge.yml` waits through `ci/wait_for_checks.py` for every check on
-  the head commit. It does not trust the required-checks list of branch protection,
-  which is kept by hand and drifts. Keep required checks on anyway, for human merges.
+- A Dependabot PR waits for a review like any other PR. No workflow merges it.
 - `ci/setup-ci-deps.sh` installs every CI dependency (Python into `.venv`, npm, vale,
   ffmpeg, Docker, Chromium). It is idempotent and safe to run again; `FORCE=1` reinstalls
   and `SKIP_*` leaves a part alone. A SessionStart hook runs it; the log is
