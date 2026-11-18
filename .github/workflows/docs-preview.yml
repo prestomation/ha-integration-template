@@ -25,8 +25,8 @@ on:
 # Read-only by default. `preview` runs `npm ci`, `pip install` and the PR's own
 # scripts, so it gets no write token. `publish` holds the write token and runs no
 # code from the PR: it deploys the site `preview` built and posts the comments.
-# Dependabot PRs for /website are same-repo PRs and got the write token here, so a
-# compromised dependency's install script could have pushed or cut a release.
+# A same-repo PR, such as a Dependabot PR for /website, must not run with a write
+# token: a compromised dependency's install script could push or cut a release.
 permissions:
   contents: read
 
